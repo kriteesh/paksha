@@ -1,0 +1,20 @@
+{
+  "name": "Paksha — Life Tracker",
+  "short_name": "Paksha",
+  "description": "Track your life by the rhythm of the moon",
+  "start_url": "./paksha.html",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#1A0800",
+  "theme_color": "#7B2D00",
+  "icons": [
+    {
+      "src": "paksha.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["lifestyle", "productivity"],
+  "lang": "en-IN"
+}

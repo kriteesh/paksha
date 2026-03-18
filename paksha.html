@@ -1,0 +1,1704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#7B2D00">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Paksha — Life Tracker</title>
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Yatra+One&family=Tiro+Devanagari+Hindi:ital@0;1&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --saffron: #FF6B1A;
+  --deep-saffron: #C94B00;
+  --turmeric: #E8A020;
+  --ochre: #B5600A;
+  --terracotta: #7B2D00;
+  --earth: #3D1A00;
+  --cream: #FFF5E6;
+  --parchment: #F5E6CC;
+  --sand: #D4A96A;
+  --smoke: #8A6A50;
+  --ash: #C4A882;
+
+  --bg: #1A0800;
+  --surface: #2A1200;
+  --surface2: #3A1A00;
+  --border: rgba(181,96,10,0.3);
+  --border-bright: rgba(232,160,32,0.5);
+  --text-primary: #FFF5E6;
+  --text-secondary: #C4A882;
+  --text-muted: #8A6A50;
+
+  --font-display: 'Yatra One', serif;
+  --font-body: 'Tiro Devanagari Hindi', serif;
+  --font-mono: 'DM Mono', monospace;
+
+  --radius: 12px;
+  --radius-sm: 6px;
+  --transition: 0.2s ease;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { font-size: 16px; scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(201,75,0,0.15) 0%, transparent 70%),
+    url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23B5600A' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* ── ONBOARDING ─────────────────────────────────── */
+#onboarding {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg);
+  background-image: radial-gradient(ellipse 60% 60% at 50% 40%, rgba(201,75,0,0.2) 0%, transparent 70%);
+}
+.onboard-card {
+  background: var(--surface);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius);
+  padding: 3rem 2.5rem;
+  max-width: 420px; width: 90%;
+  text-align: center;
+  box-shadow: 0 0 60px rgba(201,75,0,0.2), inset 0 1px 0 rgba(232,160,32,0.2);
+}
+.onboard-symbol { font-size: 3.5rem; margin-bottom: 1rem; display: block; }
+.onboard-card h1 { font-family: var(--font-display); font-size: 2rem; color: var(--turmeric); margin-bottom: 0.5rem; }
+.onboard-card p { color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 2rem; line-height: 1.6; }
+.onboard-input {
+  width: 100%; padding: 0.875rem 1rem;
+  background: var(--surface2); border: 1px solid var(--border-bright);
+  border-radius: var(--radius-sm); color: var(--text-primary);
+  font-family: var(--font-body); font-size: 1.1rem;
+  text-align: center; margin-bottom: 1.5rem; outline: none;
+  transition: border-color var(--transition);
+}
+.onboard-input:focus { border-color: var(--saffron); }
+.onboard-input::placeholder { color: var(--text-muted); }
+.btn-primary {
+  background: linear-gradient(135deg, var(--saffron), var(--deep-saffron));
+  color: white; border: none; padding: 0.875rem 2rem;
+  border-radius: var(--radius-sm); font-family: var(--font-display);
+  font-size: 1rem; cursor: pointer; width: 100%;
+  transition: opacity var(--transition), transform var(--transition);
+  box-shadow: 0 4px 20px rgba(201,75,0,0.4);
+}
+.btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+
+/* ── APP SHELL ───────────────────────────────────── */
+#app { display: none; min-height: 100vh; }
+#app.visible { display: block; }
+
+/* ── HEADER ──────────────────────────────────────── */
+header {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(26,8,0,0.9);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 1.5rem;
+}
+.header-inner {
+  max-width: 1100px; margin: 0 auto;
+  display: flex; align-items: center; gap: 1rem;
+  padding: 0.75rem 0;
+}
+.logo { font-family: var(--font-display); font-size: 1.5rem; color: var(--turmeric); flex-shrink: 0; }
+.logo span { color: var(--saffron); }
+.paksha-info {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  gap: 0.1rem;
+}
+.paksha-name { font-family: var(--font-mono); font-size: 0.75rem; color: var(--saffron); letter-spacing: 0.1em; text-transform: uppercase; }
+.paksha-meta { font-size: 0.8rem; color: var(--text-secondary); }
+.time-left {
+  font-family: var(--font-mono); font-size: 0.75rem;
+  color: var(--turmeric); text-align: right; flex-shrink: 0;
+}
+.time-left .days { font-size: 1.4rem; font-weight: 500; display: block; line-height: 1; }
+.time-left .label { color: var(--text-muted); }
+
+/* ── PHASE STRIP ──────────────────────────────────── */
+.phase-strip {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0.5rem 1.5rem;
+}
+.phase-inner { max-width: 1100px; margin: 0 auto; }
+.phase-bar {
+  height: 6px; background: var(--surface2);
+  border-radius: 3px; overflow: hidden; margin-bottom: 0.4rem;
+  position: relative;
+}
+.phase-fill {
+  height: 100%; border-radius: 3px;
+  background: linear-gradient(90deg, var(--ochre), var(--saffron), var(--turmeric));
+  transition: width 1s ease;
+  box-shadow: 0 0 8px rgba(255,107,26,0.5);
+}
+.phase-days { display: flex; justify-content: space-between; }
+.phase-day-dot {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+}
+.phase-day-dot .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--surface2);
+}
+.phase-day-dot.past .dot { background: var(--ochre); }
+.phase-day-dot.today .dot { background: var(--saffron); box-shadow: 0 0 6px var(--saffron); }
+.phase-day-dot .num { font-family: var(--font-mono); font-size: 0.55rem; color: var(--text-muted); }
+.phase-day-dot.today .num { color: var(--saffron); }
+
+/* ── NAV TABS ────────────────────────────────────── */
+nav {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+nav::-webkit-scrollbar { display: none; }
+.nav-inner {
+  max-width: 1100px; margin: 0 auto;
+  display: flex; gap: 0;
+}
+.nav-tab {
+  padding: 0.75rem 1.25rem;
+  font-family: var(--font-mono); font-size: 0.75rem;
+  letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--text-muted); cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all var(--transition);
+  white-space: nowrap; flex-shrink: 0;
+  display: flex; align-items: center; gap: 0.4rem;
+  border: none; background: none;
+}
+.nav-tab:hover { color: var(--text-secondary); }
+.nav-tab.active { color: var(--saffron); border-bottom: 2px solid var(--saffron); }
+.nav-tab .icon { font-size: 0.9rem; }
+
+/* ── MAIN CONTENT ────────────────────────────────── */
+main { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
+
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ── SECTION HEADER ──────────────────────────────── */
+.section-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+.section-title { font-family: var(--font-display); font-size: 1.5rem; color: var(--turmeric); }
+.section-subtitle { font-size: 0.85rem; color: var(--text-muted); margin-top: 0.15rem; }
+
+/* ── CATEGORY CARDS ──────────────────────────────── */
+.categories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1.25rem;
+}
+.category-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.category-card:hover { border-color: var(--border-bright); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+
+.card-header {
+  padding: 1rem 1.25rem;
+  display: flex; align-items: center; gap: 0.75rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+}
+.card-icon { font-size: 1.3rem; }
+.card-title { font-family: var(--font-display); font-size: 1rem; color: var(--parchment); flex: 1; }
+.card-mode-badge {
+  font-family: var(--font-mono); font-size: 0.65rem;
+  padding: 0.2rem 0.5rem; border-radius: 20px;
+  letter-spacing: 0.08em; text-transform: uppercase;
+}
+.badge-display { background: rgba(181,96,10,0.2); color: var(--sand); }
+.badge-edit { background: rgba(255,107,26,0.2); color: var(--saffron); }
+.badge-fill { background: rgba(232,160,32,0.2); color: var(--turmeric); }
+
+.card-body { padding: 1.25rem; }
+
+/* Target items in display mode */
+.target-list { list-style: none; display: flex; flex-direction: column; gap: 0.6rem; }
+.target-item {
+  display: flex; align-items: flex-start; gap: 0.6rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface2); border-radius: var(--radius-sm);
+  border-left: 2px solid var(--ochre);
+}
+.target-item.filled { border-left-color: var(--saffron); }
+.target-item.complete { border-left-color: #4CAF50; opacity: 0.8; }
+
+.target-key {
+  font-family: var(--font-mono); font-size: 0.75rem;
+  color: var(--text-muted); min-width: 90px; flex-shrink: 0;
+  padding-top: 0.05rem;
+}
+.target-val {
+  font-size: 0.85rem; color: var(--text-secondary); flex: 1; line-height: 1.4;
+}
+.target-unit { font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted); margin-left: 0.25rem; }
+.target-filled { font-family: var(--font-mono); font-size: 0.7rem; color: var(--turmeric); margin-left: auto; flex-shrink: 0; }
+
+.empty-state {
+  text-align: center; padding: 2rem 1rem;
+  color: var(--text-muted); font-size: 0.85rem;
+}
+.empty-state .hint { font-size: 0.75rem; margin-top: 0.4rem; color: var(--smoke); }
+
+/* ── EDIT/FILL MODES ─────────────────────────────── */
+.mode-switcher {
+  display: flex; gap: 0.5rem; margin-bottom: 1.25rem;
+}
+.mode-btn {
+  padding: 0.4rem 0.9rem;
+  font-family: var(--font-mono); font-size: 0.72rem;
+  border-radius: 20px; border: 1px solid var(--border);
+  background: transparent; color: var(--text-muted);
+  cursor: pointer; transition: all var(--transition);
+  letter-spacing: 0.05em; text-transform: uppercase;
+}
+.mode-btn:hover { border-color: var(--border-bright); color: var(--text-secondary); }
+.mode-btn.active-display { background: rgba(181,96,10,0.2); border-color: var(--ochre); color: var(--sand); }
+.mode-btn.active-edit { background: rgba(255,107,26,0.2); border-color: var(--saffron); color: var(--saffron); }
+.mode-btn.active-fill { background: rgba(232,160,32,0.2); border-color: var(--turmeric); color: var(--turmeric); }
+
+/* Edit form */
+.edit-form { display: flex; flex-direction: column; gap: 0.75rem; }
+.field-row {
+  display: grid; grid-template-columns: 1fr 1fr auto;
+  gap: 0.5rem; align-items: center;
+}
+.field-row.single { grid-template-columns: 1fr auto; }
+.field-row.triple { grid-template-columns: 1fr 0.6fr 0.6fr auto; }
+
+.field-input {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 0.5rem 0.75rem;
+  color: var(--text-primary); font-family: var(--font-body); font-size: 0.85rem;
+  outline: none; transition: border-color var(--transition); width: 100%;
+}
+.field-input:focus { border-color: var(--saffron); }
+.field-input::placeholder { color: var(--text-muted); }
+.field-label {
+  font-family: var(--font-mono); font-size: 0.65rem;
+  color: var(--text-muted); margin-bottom: 0.2rem; text-transform: uppercase;
+}
+
+.btn-icon {
+  background: transparent; border: 1px solid var(--border);
+  color: var(--text-muted); border-radius: var(--radius-sm);
+  width: 32px; height: 32px; cursor: pointer; display: flex;
+  align-items: center; justify-content: center; font-size: 0.9rem;
+  transition: all var(--transition); flex-shrink: 0;
+}
+.btn-icon:hover { border-color: var(--saffron); color: var(--saffron); }
+.btn-icon.danger:hover { border-color: #e05; color: #e05; }
+
+.btn-add {
+  background: transparent; border: 1px dashed var(--border);
+  color: var(--text-muted); border-radius: var(--radius-sm);
+  padding: 0.4rem 0.75rem; font-family: var(--font-mono);
+  font-size: 0.72rem; cursor: pointer; width: 100%;
+  transition: all var(--transition); letter-spacing: 0.05em;
+}
+.btn-add:hover { border-color: var(--saffron); color: var(--saffron); }
+
+.btn-save {
+  background: linear-gradient(135deg, var(--deep-saffron), var(--ochre));
+  color: white; border: none; padding: 0.5rem 1.25rem;
+  border-radius: var(--radius-sm); font-family: var(--font-mono);
+  font-size: 0.72rem; cursor: pointer; letter-spacing: 0.05em;
+  margin-top: 0.25rem;
+  transition: opacity var(--transition);
+}
+.btn-save:hover { opacity: 0.85; }
+
+/* Fill form */
+.fill-form { display: flex; flex-direction: column; gap: 0.75rem; }
+.fill-row {
+  background: var(--surface2); border-radius: var(--radius-sm);
+  padding: 0.75rem; border-left: 2px solid var(--ochre);
+}
+.fill-row-header {
+  display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;
+}
+.fill-row-key { font-family: var(--font-mono); font-size: 0.72rem; color: var(--sand); }
+.fill-row-target { font-size: 0.82rem; color: var(--text-secondary); flex: 1; }
+.fill-inputs { display: flex; gap: 0.5rem; align-items: center; }
+.fill-inputs .field-input { flex: 1; }
+.fill-unit { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted); flex-shrink: 0; }
+
+/* Budget specific */
+.budget-log { display: flex; flex-direction: column; gap: 0.5rem; }
+.budget-entry {
+  display: grid; grid-template-columns: 1fr 0.7fr 0.8fr auto;
+  gap: 0.5rem; align-items: center;
+}
+.budget-summary {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0.75rem; background: rgba(201,75,0,0.1);
+  border-radius: var(--radius-sm); margin-top: 0.75rem;
+  border: 1px solid rgba(201,75,0,0.2);
+}
+.budget-total { font-family: var(--font-mono); font-size: 1.1rem; color: var(--turmeric); }
+.budget-label { font-size: 0.75rem; color: var(--text-muted); }
+
+/* ── OVERVIEW TAB ────────────────────────────────── */
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem; margin-bottom: 1.5rem;
+}
+.stat-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 1.25rem;
+  display: flex; flex-direction: column; gap: 0.4rem;
+}
+.stat-label { font-family: var(--font-mono); font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
+.stat-value { font-family: var(--font-display); font-size: 2rem; color: var(--turmeric); line-height: 1; }
+.stat-sub { font-size: 0.75rem; color: var(--text-secondary); }
+
+.progress-ring { position: relative; width: 60px; height: 60px; }
+.progress-ring svg { transform: rotate(-90deg); }
+.progress-ring circle { fill: none; stroke-width: 4; }
+.progress-ring .bg { stroke: var(--surface2); }
+.progress-ring .fg { stroke: var(--saffron); stroke-linecap: round; transition: stroke-dashoffset 1s ease; }
+
+.overview-cat-row {
+  display: flex; align-items: center; gap: 1rem;
+  padding: 0.875rem 1rem;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); margin-bottom: 0.5rem;
+  cursor: pointer; transition: border-color var(--transition);
+}
+.overview-cat-row:hover { border-color: var(--border-bright); }
+.overview-cat-icon { font-size: 1.1rem; width: 28px; text-align: center; }
+.overview-cat-name { font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-secondary); flex: 1; text-transform: uppercase; letter-spacing: 0.05em; }
+.overview-cat-bar { flex: 2; height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+.overview-cat-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--ochre), var(--saffron)); }
+.overview-cat-pct { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted); min-width: 35px; text-align: right; }
+
+/* ── EXPORT TAB ──────────────────────────────────── */
+.export-section { margin-bottom: 1.5rem; }
+.export-section h3 { font-family: var(--font-display); color: var(--turmeric); margin-bottom: 1rem; }
+.export-btn-row { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+.btn-export {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text-secondary);
+  font-family: var(--font-mono); font-size: 0.75rem;
+  cursor: pointer; transition: all var(--transition);
+  letter-spacing: 0.05em;
+}
+.btn-export:hover { border-color: var(--border-bright); color: var(--text-primary); }
+.btn-export .icon { font-size: 1rem; }
+
+.export-preview {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 1.25rem;
+  font-family: var(--font-mono); font-size: 0.75rem;
+  color: var(--text-secondary); line-height: 1.7;
+  max-height: 400px; overflow-y: auto; white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ── HISTORY TAB ─────────────────────────────────── */
+.history-list { display: flex; flex-direction: column; gap: 0.75rem; }
+.history-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden;
+}
+.history-card-header {
+  padding: 0.875rem 1.25rem;
+  background: var(--surface2);
+  display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer; user-select: none;
+}
+.history-card-header:hover { background: rgba(58,26,0,0.8); }
+.history-card-name { font-family: var(--font-display); font-size: 0.95rem; color: var(--parchment); }
+.history-card-date { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted); }
+.history-card-body { padding: 1rem 1.25rem; display: none; }
+.history-card-body.open { display: block; }
+
+/* ── TOAST ───────────────────────────────────────── */
+.toast {
+  position: fixed; bottom: 2rem; right: 2rem; z-index: 9999;
+  background: var(--surface); border: 1px solid var(--border-bright);
+  border-radius: var(--radius-sm); padding: 0.75rem 1.25rem;
+  font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-primary);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  transform: translateY(100px); opacity: 0;
+  transition: all 0.3s ease;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+
+/* ── RESPONSIVE ──────────────────────────────────── */
+@media (max-width: 640px) {
+  .categories-grid { grid-template-columns: 1fr; }
+  .header-inner { flex-wrap: wrap; }
+  main { padding: 1rem; }
+  .phase-day-dot:nth-child(2n) { display: none; }
+}
+
+/* ── SCROLLBAR ───────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--surface); }
+::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
+
+/* ── ANIMATIONS ──────────────────────────────────── */
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.tab-content.active { animation: fadeIn 0.25s ease; }
+</style>
+</head>
+<body>
+
+<!-- ONBOARDING -->
+<div id="onboarding">
+  <div class="onboard-card">
+    <span class="onboard-symbol">☽ ☀ ☾</span>
+    <h1>Paksha Tracker</h1>
+    <p>Track your life by the rhythm of the moon — one fortnight at a time. What shall we call you?</p>
+    <input id="name-input" class="onboard-input" type="text" placeholder="Your name..." maxlength="32" autofocus>
+    <button class="btn-primary" onclick="finishOnboarding()">Begin the Journey →</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <!-- HEADER -->
+  <header>
+    <div class="header-inner">
+      <div class="logo">Paksha<span>.</span></div>
+      <div class="paksha-info">
+        <div class="paksha-name" id="hdr-paksha-name">—</div>
+        <div class="paksha-meta" id="hdr-paksha-meta">—</div>
+      </div>
+      <div class="time-left">
+        <span class="days" id="hdr-days-left">—</span>
+        <span class="label">days left</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- PHASE STRIP -->
+  <div class="phase-strip">
+    <div class="phase-inner">
+      <div class="phase-bar"><div class="phase-fill" id="phase-fill"></div></div>
+      <div class="phase-days" id="phase-days"></div>
+    </div>
+  </div>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-inner">
+      <button class="nav-tab active" onclick="switchTab('overview')" data-tab="overview"><span class="icon">◎</span> Overview</button>
+      <button class="nav-tab" onclick="switchTab('diet')" data-tab="diet"><span class="icon">🥗</span> Diet</button>
+      <button class="nav-tab" onclick="switchTab('exercise')" data-tab="exercise"><span class="icon">🏋</span> Exercise</button>
+      <button class="nav-tab" onclick="switchTab('sidequest')" data-tab="sidequest"><span class="icon">🗺</span> Sidequest</button>
+      <button class="nav-tab" onclick="switchTab('learning')" data-tab="learning"><span class="icon">📖</span> Learning</button>
+      <button class="nav-tab" onclick="switchTab('budget')" data-tab="budget"><span class="icon">₹</span> Budget</button>
+      <button class="nav-tab" onclick="switchTab('hometask')" data-tab="hometask"><span class="icon">🏠</span> Hometask</button>
+      <button class="nav-tab" onclick="switchTab('sadhana')" data-tab="sadhana"><span class="icon">🪔</span> Sadhana</button>
+      <button class="nav-tab" onclick="switchTab('history')" data-tab="history"><span class="icon">📜</span> History</button>
+      <button class="nav-tab" onclick="switchTab('export')" data-tab="export"><span class="icon">⬇</span> Export</button>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main>
+
+    <!-- ── OVERVIEW ── -->
+    <div class="tab-content active" id="tab-overview">
+      <div class="section-header">
+        <div>
+          <div class="section-title">Namaste, <span id="overview-name"></span> 🙏</div>
+          <div class="section-subtitle" id="overview-subtitle">Your current paksha at a glance</div>
+        </div>
+      </div>
+      <div class="overview-grid" id="overview-stats"></div>
+      <div id="overview-cats"></div>
+    </div>
+
+    <!-- ── DIET ── -->
+    <div class="tab-content" id="tab-diet">
+      <div class="section-header">
+        <div>
+          <div class="section-title">🥗 Diet</div>
+          <div class="section-subtitle">Plan meals, track dishes, note costs & seasonality</div>
+        </div>
+      </div>
+      <div id="diet-content"></div>
+    </div>
+
+    <!-- ── EXERCISE ── -->
+    <div class="tab-content" id="tab-exercise">
+      <div class="section-header">
+        <div>
+          <div class="section-title">🏋 Exercise</div>
+          <div class="section-subtitle">Set targets, log your daily reps and sets</div>
+        </div>
+      </div>
+      <div id="exercise-content"></div>
+    </div>
+
+    <!-- ── SIDEQUEST ── -->
+    <div class="tab-content" id="tab-sidequest">
+      <div class="section-header">
+        <div>
+          <div class="section-title">🗺 Sidequest</div>
+          <div class="section-subtitle">Hobbies and personal adventures this fortnight</div>
+        </div>
+      </div>
+      <div id="sidequest-content"></div>
+    </div>
+
+    <!-- ── LEARNING ── -->
+    <div class="tab-content" id="tab-learning">
+      <div class="section-header">
+        <div>
+          <div class="section-title">📖 Learning</div>
+          <div class="section-subtitle">Skills and knowledge to cultivate this paksha</div>
+        </div>
+      </div>
+      <div id="learning-content"></div>
+    </div>
+
+    <!-- ── BUDGET ── -->
+    <div class="tab-content" id="tab-budget">
+      <div class="section-header">
+        <div>
+          <div class="section-title">₹ Budget</div>
+          <div class="section-subtitle">Log expenses as you go — no need to plan ahead</div>
+        </div>
+      </div>
+      <div id="budget-content"></div>
+    </div>
+
+    <!-- ── HOMETASK ── -->
+    <div class="tab-content" id="tab-hometask">
+      <div class="section-header">
+        <div>
+          <div class="section-title">🏠 Hometask</div>
+          <div class="section-subtitle">One meaningful home or family improvement</div>
+        </div>
+      </div>
+      <div id="hometask-content"></div>
+    </div>
+
+    <!-- ── SADHANA ── -->
+    <div class="tab-content" id="tab-sadhana">
+      <div class="section-header">
+        <div>
+          <div class="section-title">🪔 Sadhana</div>
+          <div class="section-subtitle">Spiritual practice and religious learning this fortnight</div>
+        </div>
+      </div>
+      <div id="sadhana-content"></div>
+    </div>
+
+    <!-- ── HISTORY ── -->
+    <div class="tab-content" id="tab-history">
+      <div class="section-header">
+        <div>
+          <div class="section-title">📜 History</div>
+          <div class="section-subtitle">All past pakshas and their progress</div>
+        </div>
+      </div>
+      <div class="history-list" id="history-list"></div>
+    </div>
+
+    <!-- ── EXPORT ── -->
+    <div class="tab-content" id="tab-export">
+      <div class="section-header">
+        <div>
+          <div class="section-title">⬇ Export</div>
+          <div class="section-subtitle">Download your data for insights and reflection</div>
+        </div>
+      </div>
+      <div class="export-section">
+        <h3>Current Paksha</h3>
+        <div class="export-btn-row">
+          <button class="btn-export" onclick="exportCurrent('json')"><span class="icon">{ }</span> Export JSON</button>
+          <button class="btn-export" onclick="exportCurrent('csv')"><span class="icon">⊞</span> Export CSV</button>
+          <button class="btn-export" onclick="exportCurrent('txt')"><span class="icon">≡</span> Export Text</button>
+        </div>
+      </div>
+      <div class="export-section">
+        <h3>All History</h3>
+        <div class="export-btn-row">
+          <button class="btn-export" onclick="exportAll('json')"><span class="icon">{ }</span> Full JSON Dump</button>
+          <button class="btn-export" onclick="exportAll('csv')"><span class="icon">⊞</span> Full CSV</button>
+        </div>
+      </div>
+      <div class="export-section">
+        <h3>Preview</h3>
+        <div class="export-preview" id="export-preview">Select an export format above to preview...</div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// PAKSHA DATES  (2025)
+// ═══════════════════════════════════════════════════
+const PAKSHA_DATES = [
+  // ── 2025 ─────────────────────────────────────────────────────────────────
+  { name:"Paush Purnima",                      type:"purnima",  start:"2025-01-02T18:53", end:"2025-01-03T15:32" },
+  { name:"Magha Amavasya",                     type:"amavasya", start:"2025-01-18T00:03", end:"2025-01-19T01:21" },
+  { name:"Magha Purnima",                      type:"purnima",  start:"2025-02-01T05:53", end:"2025-02-02T03:39" },
+  { name:"Phalguna Amavasya",                  type:"amavasya", start:"2025-02-16T17:34", end:"2025-02-17T17:30" },
+  { name:"Phalguna Purnima (Holi)",            type:"purnima",  start:"2025-03-02T17:56", end:"2025-03-03T17:07" },
+  { name:"Chaitra Amavasya",                   type:"amavasya", start:"2025-03-18T08:25", end:"2025-03-19T06:52" },
+  { name:"Chaitra Purnima",                    type:"purnima",  start:"2025-04-01T07:06", end:"2025-04-02T07:41" },
+  { name:"Vaishakha Amavasya",                 type:"amavasya", start:"2025-04-16T20:11", end:"2025-04-17T17:21" },
+  { name:"Vaishakha Purnima (Buddha Purnima)", type:"purnima",  start:"2025-05-11T20:02", end:"2025-05-12T22:25" },
+  { name:"Jyeshtha Amavasya",                  type:"amavasya", start:"2025-05-16T05:11", end:"2025-05-17T01:30" },
+  { name:"Jyeshtha Purnima",                   type:"purnima",  start:"2025-06-10T11:36", end:"2025-06-11T13:13" },
+  { name:"Adhika Jyeshtha Amavasya",           type:"amavasya", start:"2025-06-14T12:19", end:"2025-06-15T08:23" },
+  { name:"Ashadha Purnima (Guru Purnima)",     type:"purnima",  start:"2025-07-10T01:37", end:"2025-07-11T02:06" },
+  { name:"Ashadha Amavasya",                   type:"amavasya", start:"2025-07-13T18:49", end:"2025-07-14T15:12" },
+  { name:"Shravana Purnima (Raksha Bandhan)",  type:"purnima",  start:"2025-08-08T14:12", end:"2025-08-09T13:25" },
+  { name:"Shravana Amavasya",                  type:"amavasya", start:"2025-08-12T01:52", end:"2025-08-12T23:06" },
+  { name:"Bhadrapada Purnima",                 type:"purnima",  start:"2025-09-07T01:41", end:"2025-09-07T23:38" },
+  { name:"Bhadrapada Amavasya",                type:"amavasya", start:"2025-09-10T10:33", end:"2025-09-11T08:56" },
+  { name:"Ashwina Purnima",                    type:"purnima",  start:"2025-10-06T12:24", end:"2025-10-07T09:17" },
+  { name:"Ashwina Amavasya",                   type:"amavasya", start:"2025-10-09T21:35", end:"2025-10-10T21:19" },
+  { name:"Kartika Amavasya (Diwali)",          type:"amavasya", start:"2025-11-08T11:27", end:"2025-11-09T12:31" },
+  { name:"Kartika Purnima",                    type:"purnima",  start:"2025-11-23T23:42", end:"2025-11-24T20:23" },
+  { name:"Margashirsha Amavasya",              type:"amavasya", start:"2025-12-08T04:12", end:"2025-12-09T06:21" },
+  { name:"Margashirsha Purnima",               type:"purnima",  start:"2025-12-23T10:47", end:"2025-12-24T06:57" },
+  // ── 2026 ─────────────────────────────────────────────────────────────────
+  { name:"Paush Purnima",                      type:"purnima",  start:"2026-01-02T18:53", end:"2026-01-03T15:32" },
+  { name:"Magha Amavasya",                     type:"amavasya", start:"2026-01-18T00:03", end:"2026-01-19T01:21" },
+  { name:"Magha Purnima",                      type:"purnima",  start:"2026-02-01T05:53", end:"2026-02-02T03:39" },
+  { name:"Phalguna Amavasya",                  type:"amavasya", start:"2026-02-16T17:34", end:"2026-02-17T17:30" },
+  { name:"Phalguna Purnima (Holi)",            type:"purnima",  start:"2026-03-02T17:56", end:"2026-03-03T17:07" },
+  { name:"Chaitra Amavasya",                   type:"amavasya", start:"2026-03-18T08:25", end:"2026-03-19T06:52" },
+  { name:"Chaitra Purnima",                    type:"purnima",  start:"2026-04-01T07:06", end:"2026-04-02T07:41" },
+  { name:"Vaishakha Amavasya",                 type:"amavasya", start:"2026-04-16T20:11", end:"2026-04-17T17:21" },
+  { name:"Vaishakha Purnima (Buddha Purnima)", type:"purnima",  start:"2026-05-11T20:02", end:"2026-05-12T22:25" },
+  { name:"Jyeshtha Amavasya",                  type:"amavasya", start:"2026-05-16T05:11", end:"2026-05-17T01:30" },
+  { name:"Jyeshtha Purnima",                   type:"purnima",  start:"2026-06-10T11:36", end:"2026-06-11T13:13" },
+  { name:"Adhika Jyeshtha Amavasya",           type:"amavasya", start:"2026-06-14T12:19", end:"2026-06-15T08:23" },
+  { name:"Ashadha Purnima (Guru Purnima)",     type:"purnima",  start:"2026-07-10T01:37", end:"2026-07-11T02:06" },
+  { name:"Ashadha Amavasya",                   type:"amavasya", start:"2026-07-13T18:49", end:"2026-07-14T15:12" },
+  { name:"Shravana Purnima (Raksha Bandhan)",  type:"purnima",  start:"2026-08-08T14:12", end:"2026-08-09T13:25" },
+  { name:"Shravana Amavasya",                  type:"amavasya", start:"2026-08-12T01:52", end:"2026-08-12T23:06" },
+  { name:"Bhadrapada Purnima",                 type:"purnima",  start:"2026-09-07T01:41", end:"2026-09-07T23:38" },
+  { name:"Bhadrapada Amavasya",                type:"amavasya", start:"2026-09-10T10:33", end:"2026-09-11T08:56" },
+  { name:"Ashwina Purnima",                    type:"purnima",  start:"2026-10-06T12:24", end:"2026-10-07T09:17" },
+  { name:"Ashwina Amavasya",                   type:"amavasya", start:"2026-10-09T21:35", end:"2026-10-10T21:19" },
+  { name:"Kartika Amavasya (Diwali)",          type:"amavasya", start:"2026-11-08T11:27", end:"2026-11-09T12:31" },
+  { name:"Kartika Purnima",                    type:"purnima",  start:"2026-11-23T23:42", end:"2026-11-24T20:23" },
+  { name:"Margashirsha Amavasya",              type:"amavasya", start:"2026-12-08T04:12", end:"2026-12-09T06:21" },
+  { name:"Margashirsha Purnima",               type:"purnima",  start:"2026-12-23T10:47", end:"2026-12-24T06:57" },
+];
+
+// ═══════════════════════════════════════════════════
+// STORAGE HELPERS
+// ═══════════════════════════════════════════════════
+const DB_NAME = 'PakshaTracker';
+const DB_VERSION = 1;
+let db = null;
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains('pakshas')) d.createObjectStore('pakshas', { keyPath: 'id' });
+      if (!d.objectStoreNames.contains('meta')) d.createObjectStore('meta', { keyPath: 'key' });
+    };
+    req.onsuccess = e => { db = e.target.result; resolve(db); };
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function dbGet(store, key) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(store, 'readonly');
+    const req = tx.objectStore(store).get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function dbPut(store, value) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(store, 'readwrite');
+    const req = tx.objectStore(store).put(value);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function dbGetAll(store) {
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(store, 'readonly');
+    const req = tx.objectStore(store).getAll();
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+let userName = '';
+let currentPaksha = null;
+let currentData = {}; // live data for current paksha
+let categoryModes = {}; // per-category: 'display'|'edit'|'fill'
+
+const CATEGORIES = {
+  diet:      { icon:'🥗', label:'Diet',      schema:'diet'      },
+  exercise:  { icon:'🏋', label:'Exercise',  schema:'exercise'  },
+  sidequest: { icon:'🗺', label:'Sidequest', schema:'simple'    },
+  learning:  { icon:'📖', label:'Learning',  schema:'simple'    },
+  budget:    { icon:'₹',  label:'Budget',    schema:'budget'    },
+  hometask:  { icon:'🏠', label:'Hometask',  schema:'single'    },
+  sadhana:   { icon:'🪔', label:'Sadhana',   schema:'single'    },
+};
+
+// ═══════════════════════════════════════════════════
+// PAKSHA LOGIC
+// ═══════════════════════════════════════════════════
+
+// ── PAKSHA NAME HELPERS ────────────────────────────────────────────────────
+// Extract the maasa (month) name from a tithi name like "Chaitra Amavasya"
+function getMaasa(tithiName) {
+  // strip bracketed festival names and return first word
+  return tithiName.replace(/\(.*?\)/g,'').trim().split(' ')[0];
+}
+// Shukla = amavasya→purnima (waxing, bright fortnight)
+// Krishna = purnima→amavasya (waning, dark fortnight)
+function getPakshaFullName(fromTithi, toTithi) {
+  const maasa = getMaasa(toTithi.name); // month of the tithi we're heading toward
+  const paksha = toTithi.type === 'purnima' ? 'Shukla' : 'Krishna';
+  return `${maasa} ${paksha}`;
+}
+
+function getCurrentPaksha(now = new Date()) {
+  const sorted = [...PAKSHA_DATES].sort((a,b) => new Date(a.start) - new Date(b.start));
+
+  // ── PREP DAY DETECTION ──
+  // If today falls within any tithi's own span (start→end), it is the
+  // prep/target-setting day for the NEXT paksha (the one starting at that tithi's start).
+  // The upcoming paksha's data/id should be used so targets set today persist.
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const tithi = sorted[i];
+    const ts = new Date(tithi.start);
+    const te = new Date(tithi.end);
+    if (now >= ts && now < te) {
+      // We are on the tithi day itself — prep day for the next paksha
+      const nextTithi = sorted[i + 1];
+      const e = new Date(nextTithi.start);
+      const pakshaName = getPakshaFullName(tithi, nextTithi);
+      return {
+        id: 'paksha_' + pakshaName.replace(/[\s()]/g,'_'),
+        pakshaName,
+        startName: tithi.name,
+        endName: nextTithi.name,
+        type: nextTithi.type,
+        start: ts,   // display: paksha "starts" at this tithi
+        end: e,
+        isPrepDay: true,  // flag: we are in prep/target-setting mode
+        formalStart: ts,  // the actual first moment of this paksha interval
+        index: i
+      };
+    }
+  }
+
+  // ── NORMAL PAKSHA DAY ──
+  // We are between two tithis. Paksha runs from sorted[i].start to sorted[i+1].start.
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const s = new Date(sorted[i].start);
+    const e = new Date(sorted[i+1].start);
+    if (now >= s && now < e) {
+      const pakshaName = getPakshaFullName(sorted[i], sorted[i+1]);
+      return {
+        id: 'paksha_' + pakshaName.replace(/[\s()]/g,'_'),
+        pakshaName,
+        startName: sorted[i].name,
+        endName: sorted[i+1].name,
+        type: sorted[i+1].type,
+        start: s, end: e,
+        isPrepDay: false,
+        formalStart: s,
+        index: i
+      };
+    }
+  }
+
+  // Before first tithi
+  if (now < new Date(sorted[0].start)) {
+    const e = new Date(sorted[0].start);
+    const s = new Date(e - 15 * 86400000);
+    const pakshaName = getMaasa(sorted[0].name) + (sorted[0].type === 'purnima' ? ' Shukla' : ' Krishna');
+    return { id:'paksha_pre', pakshaName, startName:'—', endName: sorted[0].name,
+             type: sorted[0].type, start:s, end:e, isPrepDay:false, formalStart:s, index:-1 };
+  }
+
+  // After last tithi
+  const last = sorted[sorted.length - 1];
+  const prev = sorted[sorted.length - 2];
+  const avgLen = new Date(last.start) - new Date(prev.start);
+  const pakshaName = getMaasa(last.name) + (last.type === 'purnima' ? ' Krishna' : ' Shukla');
+  return {
+    id: 'paksha_' + pakshaName.replace(/[\s()]/g,'_'),
+    pakshaName, startName: last.name, endName: 'Next tithi',
+    type: last.type === 'purnima' ? 'amavasya' : 'purnima',
+    start: new Date(last.start), end: new Date(new Date(last.start).valueOf() + avgLen),
+    isPrepDay: false, formalStart: new Date(last.start), index: sorted.length - 1
+  };
+}
+
+function getPakshaProgress(paksha, now = new Date()) {
+  const total = paksha.end - paksha.start;
+  const elapsed = Math.min(Math.max(now - paksha.start, 0), total);
+  const pct = elapsed / total;
+  const daysTotal = Math.ceil(total / 86400000);
+  const daysCurrent = Math.ceil(elapsed / 86400000);
+  const daysLeft = Math.max(0, Math.ceil((paksha.end - now) / 86400000));
+  return { pct, daysTotal, daysCurrent, daysLeft };
+}
+
+// ═══════════════════════════════════════════════════
+// ONBOARDING
+// ═══════════════════════════════════════════════════
+function finishOnboarding() {
+  const name = document.getElementById('name-input').value.trim();
+  if (!name) return showToast('Please enter your name ✨');
+  userName = name;
+  localStorage.setItem('paksha_user', name);
+  document.getElementById('onboarding').style.display = 'none';
+  initApp();
+}
+
+document.getElementById('name-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') finishOnboarding();
+});
+
+// ═══════════════════════════════════════════════════
+// APP INIT
+// ═══════════════════════════════════════════════════
+async function initApp() {
+  await openDB();
+
+  const now = new Date();
+  currentPaksha = getCurrentPaksha(now);
+
+  // Load or create current paksha data
+  const existing = await dbGet('pakshas', currentPaksha.id);
+  if (existing) {
+    currentData = existing.data || {};
+  } else {
+    currentData = buildEmptyData();
+    await saveCurrent();
+  }
+
+  // Init modes
+  Object.keys(CATEGORIES).forEach(cat => categoryModes[cat] = 'display');
+
+  renderHeader();
+  renderPhaseStrip();
+  renderOverview();
+  renderCategory('diet');
+  renderCategory('exercise');
+  renderCategory('sidequest');
+  renderCategory('learning');
+  renderCategory('budget');
+  renderCategory('hometask');
+  renderCategory('sadhana');
+  renderHistory();
+
+  document.getElementById('overview-name').textContent = userName;
+  document.getElementById('app').classList.add('visible');
+}
+
+function buildEmptyData() {
+  return {
+    diet:      { targets:[], fills:{} },
+    exercise:  { targets:[], fills:{} },
+    sidequest: { targets:[], fills:{} },
+    learning:  { targets:[], fills:{} },
+    budget:    { entries:[], limit:'' },
+    hometask:  { target:'', fill:'', done:false },
+    sadhana:   { target:'', fill:'', done:false },
+  };
+}
+
+async function saveCurrent() {
+  await dbPut('pakshas', {
+    id: currentPaksha.id,
+    meta: currentPaksha,
+    data: currentData,
+    updatedAt: new Date().toISOString()
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// HEADER & PHASE
+// ═══════════════════════════════════════════════════
+function renderHeader() {
+  const now = new Date();
+  const prog = getPakshaProgress(currentPaksha, now);
+  document.getElementById('hdr-paksha-name').textContent = currentPaksha.pakshaName;
+  const nextSymbol = currentPaksha.type === 'purnima' ? '🌕' : '🌑';
+  const dayLabel = currentPaksha.isPrepDay
+    ? `${nextSymbol} Prep day · ${currentPaksha.pakshaName} begins tomorrow`
+    : `Day ${prog.daysCurrent} of ${prog.daysTotal} · ${nextSymbol} ${currentPaksha.endName} ahead`;
+  document.getElementById('hdr-paksha-meta').textContent = dayLabel;
+  document.getElementById('hdr-days-left').textContent = currentPaksha.isPrepDay ? '~15' : prog.daysLeft;
+}
+
+function renderPhaseStrip() {
+  const now = new Date();
+  const prog = getPakshaProgress(currentPaksha, now);
+  document.getElementById('phase-fill').style.width = (prog.pct * 100) + '%';
+
+  const strip = document.getElementById('phase-days');
+  strip.innerHTML = '';
+  for (let i = 1; i <= prog.daysTotal; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'phase-day-dot' + (i < prog.daysCurrent ? ' past' : i === prog.daysCurrent ? ' today' : '');
+    dot.innerHTML = `<div class="dot"></div><span class="num">${i}</span>`;
+    strip.appendChild(dot);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// OVERVIEW
+// ═══════════════════════════════════════════════════
+function renderOverview() {
+  const now = new Date();
+  const prog = getPakshaProgress(currentPaksha, now);
+
+  const prepNote = currentPaksha.isPrepDay ? ' · 🪔 Prep day — set your targets!' : ` · Day ${prog.daysCurrent} of ${prog.daysTotal}`;
+  document.getElementById('overview-subtitle').textContent = currentPaksha.pakshaName + prepNote;
+
+  const stats = document.getElementById('overview-stats');
+  stats.innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">Days Left</div>
+      <div class="stat-value">${prog.daysLeft}</div>
+      <div class="stat-sub">of ${prog.daysTotal} total</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Progress</div>
+      <div class="stat-value">${Math.round(prog.pct*100)}%</div>
+      <div class="stat-sub">paksha elapsed</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Budget Spent</div>
+      <div class="stat-value">₹${getBudgetTotal()}</div>
+      <div class="stat-sub">${(currentData.budget.limit ? 'of ₹' + currentData.budget.limit : 'no limit set')}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Next Milestone</div>
+      <div class="stat-value" style="font-size:1.2rem">${currentPaksha.type === 'purnima' ? '🌕' : '🌑'}</div>
+      <div class="stat-sub">${currentPaksha.endName.replace(/\(.*?\)/g,'').trim()}</div>
+    </div>
+  `;
+
+  const cats = document.getElementById('overview-cats');
+  cats.innerHTML = Object.entries(CATEGORIES).map(([key, meta]) => {
+    const pct = getCategoryProgress(key);
+    return `<div class="overview-cat-row" onclick="switchTab('${key}')">
+      <span class="overview-cat-icon">${meta.icon}</span>
+      <span class="overview-cat-name">${meta.label}</span>
+      <div class="overview-cat-bar"><div class="overview-cat-fill" style="width:${pct}%"></div></div>
+      <span class="overview-cat-pct">${Math.round(pct)}%</span>
+    </div>`;
+  }).join('');
+}
+
+function getCategoryProgress(cat) {
+  const d = currentData[cat];
+  if (!d) return 0;
+  if (cat === 'budget') {
+    if (!d.limit || d.entries.length === 0) return d.entries.length > 0 ? 50 : 0;
+    const spent = getBudgetTotal();
+    return Math.min(100, (spent / parseFloat(d.limit)) * 100);
+  }
+  if (cat === 'hometask' || cat === 'sadhana') {
+    if (!d.target) return 0;
+    return d.done ? 100 : (d.fill ? 50 : 10);
+  }
+  if (!d.targets || d.targets.length === 0) return 0;
+  const fills = Object.keys(d.fills || {}).filter(k => d.fills[k] && d.fills[k] !== '');
+  return Math.round((fills.length / d.targets.length) * 100);
+}
+
+function getBudgetTotal() {
+  if (!currentData.budget.entries) return 0;
+  return currentData.budget.entries.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0).toFixed(0);
+}
+
+// ═══════════════════════════════════════════════════
+// CATEGORY RENDERING
+// ═══════════════════════════════════════════════════
+function renderCategory(cat) {
+  const mode = categoryModes[cat] || 'display';
+  const el = document.getElementById(`${cat}-content`);
+  if (!el) return;
+
+  const schema = CATEGORIES[cat].schema;
+  let html = modeSwitcher(cat, mode);
+
+  if (mode === 'display') {
+    html += renderDisplayMode(cat, schema);
+  } else if (mode === 'edit') {
+    html += renderEditMode(cat, schema);
+  } else if (mode === 'fill') {
+    html += renderFillMode(cat, schema);
+  }
+
+  el.innerHTML = html;
+  attachCategoryEvents(cat, schema, mode);
+}
+
+function modeSwitcher(cat, current) {
+  const schema = CATEGORIES[cat].schema;
+  const showFill = schema !== 'budget'; // budget is always fill-style
+  return `<div class="mode-switcher">
+    <button class="mode-btn ${current==='display'?'active-display':''}" onclick="setMode('${cat}','display')">◎ View</button>
+    <button class="mode-btn ${current==='edit'?'active-edit':''}" onclick="setMode('${cat}','edit')">✎ Edit Targets</button>
+    ${showFill ? `<button class="mode-btn ${current==='fill'?'active-fill':''}" onclick="setMode('${cat}','fill')">↳ Fill Progress</button>` : ''}
+  </div>`;
+}
+
+function setMode(cat, mode) {
+  categoryModes[cat] = mode;
+  renderCategory(cat);
+}
+
+// ─── DISPLAY ───────────────────────────────────────
+function renderDisplayMode(cat, schema) {
+  const d = currentData[cat];
+
+  if (schema === 'budget') return renderBudgetDisplay(d);
+  if (schema === 'single') return renderSingleDisplay(cat, d);
+  if (schema === 'diet') return renderDietDisplay(d);
+  if (schema === 'exercise') return renderExerciseDisplay(d);
+  if (schema === 'simple') return renderSimpleDisplay(d);
+  return '';
+}
+
+function renderDietDisplay(d) {
+  if (!d.targets || !d.targets.length) return emptyState('No diet items planned yet.', 'Switch to Edit Targets to add meals, drinks, etc.');
+  return `<ul class="target-list">${d.targets.map((t, i) => {
+    const fill = d.fills && d.fills[i];
+    const cls = fill ? (fill.cost ? 'filled' : 'filled') : '';
+    return `<li class="target-item ${cls}">
+      <span class="target-key">${t.type || 'item'}</span>
+      <div style="flex:1">
+        <div class="target-val">${t.name || ''}</div>
+        ${t.notes ? `<div style="font-size:0.72rem;color:var(--text-muted)">${t.notes}</div>` : ''}
+      </div>
+      ${fill ? `<span class="target-filled">✓ ₹${fill.cost||'—'}</span>` : ''}
+    </li>`;
+  }).join('')}</ul>`;
+}
+
+function renderExerciseDisplay(d) {
+  if (!d.targets || !d.targets.length) return emptyState('No exercises planned yet.', 'Switch to Edit Targets to set your reps and sets.');
+  return `<ul class="target-list">${d.targets.map((t, i) => {
+    const fill = d.fills && d.fills[i];
+    return `<li class="target-item ${fill ? 'filled' : ''}">
+      <span class="target-key">${t.name}</span>
+      <span class="target-val">${t.reps} reps × ${t.sets} sets</span>
+      ${fill ? `<span class="target-filled">${fill.done}/${t.sets} done</span>` : ''}
+    </li>`;
+  }).join('')}</ul>`;
+}
+
+function renderSimpleDisplay(d) {
+  if (!d.targets || !d.targets.length) return emptyState('Nothing planned yet.', 'Switch to Edit Targets to add tasks.');
+  return `<ul class="target-list">${d.targets.map((t, i) => {
+    const fill = d.fills && d.fills[i];
+    return `<li class="target-item ${fill && fill.done ? 'complete' : fill ? 'filled' : ''}">
+      <span class="target-key">${t.priority || '—'}</span>
+      <span class="target-val">${t.name}</span>
+      ${fill ? `<span class="target-filled">${fill.done ? '✓' : fill.notes || ''}</span>` : ''}
+    </li>`;
+  }).join('')}</ul>`;
+}
+
+function renderBudgetDisplay(d) {
+  const total = getBudgetTotal();
+  const limit = d.limit ? parseFloat(d.limit) : null;
+  const pct = limit ? Math.min(100, (total / limit) * 100) : null;
+  let html = '';
+  if (d.entries && d.entries.length) {
+    html += `<ul class="target-list">${d.entries.map((e, i) => `
+      <li class="target-item filled">
+        <span class="target-key">${e.category || 'misc'}</span>
+        <span class="target-val">${e.note || '—'}</span>
+        <span class="target-filled">₹${e.amount}</span>
+      </li>`).join('')}</ul>`;
+    html += `<div class="budget-summary">
+      <div><div class="budget-label">Total Spent</div><div class="budget-total">₹${total}</div></div>
+      ${limit ? `<div style="text-align:right"><div class="budget-label">Budget</div><div class="budget-total" style="font-size:0.9rem">₹${limit} (${Math.round(pct)}% used)</div></div>` : ''}
+    </div>`;
+  } else {
+    html += emptyState('No expenses logged yet.', 'Switch to Fill Progress to add entries.');
+  }
+  return html;
+}
+
+function renderSingleDisplay(cat, d) {
+  if (!d.target) return emptyState(`No ${cat} set for this paksha.`, 'Switch to Edit Targets to set one.');
+  return `<div class="target-item ${d.done ? 'complete' : d.fill ? 'filled' : ''}">
+    <span class="target-key">Goal</span>
+    <span class="target-val">${d.target}</span>
+    <span class="target-filled">${d.done ? '✓ Done' : d.fill || ''}</span>
+  </div>`;
+}
+
+function emptyState(msg, hint='') {
+  return `<div class="empty-state">${msg}${hint ? `<div class="hint">${hint}</div>` : ''}</div>`;
+}
+
+// ─── EDIT MODE ─────────────────────────────────────
+function renderEditMode(cat, schema) {
+  if (schema === 'diet') return renderDietEdit();
+  if (schema === 'exercise') return renderExerciseEdit();
+  if (schema === 'simple') return renderSimpleEdit(cat);
+  if (schema === 'budget') return renderBudgetFill(); // budget edit = fill
+  if (schema === 'single') return renderSingleEdit(cat);
+  return '';
+}
+
+function renderDietEdit() {
+  const items = currentData.diet.targets || [];
+  let rows = items.map((t, i) => `
+    <div class="field-row triple" data-idx="${i}">
+      <div><div class="field-label">Name</div><input class="field-input" data-field="name" value="${esc(t.name||'')}" placeholder="Dish / drink name"></div>
+      <div><div class="field-label">Type</div><input class="field-input" data-field="type" value="${esc(t.type||'')}" placeholder="meal / drink"></div>
+      <div><div class="field-label">Notes</div><input class="field-input" data-field="notes" value="${esc(t.notes||'')}" placeholder="seasonal, brand…"></div>
+      <button class="btn-icon danger" onclick="removeDietItem(${i})">✕</button>
+    </div>`).join('');
+  return `<div class="edit-form" id="diet-edit-form">${rows}
+    <button class="btn-add" onclick="addDietItem()">+ Add Item</button>
+    <button class="btn-save" onclick="saveDietEdit()">Save Targets</button>
+  </div>`;
+}
+
+function renderExerciseEdit() {
+  const items = currentData.exercise.targets || [];
+  let rows = items.map((t, i) => `
+    <div class="field-row triple" data-idx="${i}">
+      <div><div class="field-label">Exercise</div><input class="field-input" data-field="name" value="${esc(t.name||'')}" placeholder="Pushups, Squats…"></div>
+      <div><div class="field-label">Reps</div><input class="field-input" data-field="reps" type="number" value="${t.reps||''}" placeholder="20" style="width:100%"></div>
+      <div><div class="field-label">Sets</div><input class="field-input" data-field="sets" type="number" value="${t.sets||''}" placeholder="3" style="width:100%"></div>
+      <button class="btn-icon danger" onclick="removeExerciseItem(${i})">✕</button>
+    </div>`).join('');
+  return `<div class="edit-form" id="exercise-edit-form">${rows}
+    <button class="btn-add" onclick="addExerciseItem()">+ Add Exercise</button>
+    <button class="btn-save" onclick="saveExerciseEdit()">Save Targets</button>
+  </div>`;
+}
+
+function renderSimpleEdit(cat) {
+  const items = currentData[cat].targets || [];
+  let rows = items.map((t, i) => `
+    <div class="field-row" data-idx="${i}">
+      <div><div class="field-label">Task / Goal</div><input class="field-input" data-field="name" value="${esc(t.name||'')}" placeholder="What do you want to do?"></div>
+      <div><div class="field-label">Priority</div><input class="field-input" data-field="priority" value="${esc(t.priority||'')}" placeholder="high / med / low" style="width:90px"></div>
+      <button class="btn-icon danger" onclick="removeSimpleItem('${cat}', ${i})">✕</button>
+    </div>`).join('');
+  return `<div class="edit-form" id="${cat}-edit-form">${rows}
+    <button class="btn-add" onclick="addSimpleItem('${cat}')">+ Add Item</button>
+    <button class="btn-save" onclick="saveSimpleEdit('${cat}')">Save Targets</button>
+  </div>`;
+}
+
+function renderSingleEdit(cat) {
+  const d = currentData[cat];
+  return `<div class="edit-form">
+    <div><div class="field-label">Your ${cat} goal for this paksha</div>
+    <textarea id="${cat}-target-input" class="field-input" rows="3" placeholder="Describe your goal…" style="resize:vertical">${esc(d.target||'')}</textarea></div>
+    <button class="btn-save" onclick="saveSingleEdit('${cat}')">Save Target</button>
+  </div>`;
+}
+
+// ─── FILL MODE ─────────────────────────────────────
+function renderFillMode(cat, schema) {
+  if (schema === 'budget') return renderBudgetFill();
+  if (schema === 'diet') return renderDietFill();
+  if (schema === 'exercise') return renderExerciseFill();
+  if (schema === 'simple') return renderSimpleFill(cat);
+  if (schema === 'single') return renderSingleFill(cat);
+  return '';
+}
+
+function renderDietFill() {
+  const d = currentData.diet;
+  if (!d.targets || !d.targets.length) return emptyState('No diet items to fill.', 'Add targets first via Edit Targets.');
+  let rows = d.targets.map((t, i) => {
+    const fill = (d.fills||{})[i] || {};
+    return `<div class="fill-row">
+      <div class="fill-row-header">
+        <span class="fill-row-key">${t.type||'item'}</span>
+        <span class="fill-row-target">${t.name}</span>
+      </div>
+      <div class="fill-inputs">
+        <input class="field-input" placeholder="Ate / drank?" id="diet-fill-ate-${i}" value="${esc(fill.ate||'')}">
+        <input class="field-input" placeholder="Cost ₹" id="diet-fill-cost-${i}" value="${esc(fill.cost||'')}" style="max-width:90px">
+        <input class="field-input" placeholder="Notes" id="diet-fill-note-${i}" value="${esc(fill.note||'')}">
+      </div>
+    </div>`;
+  }).join('');
+  return `<div class="fill-form">${rows}<button class="btn-save" onclick="saveDietFill()">Save Progress</button></div>`;
+}
+
+function renderExerciseFill() {
+  const d = currentData.exercise;
+  if (!d.targets || !d.targets.length) return emptyState('No exercises to fill.', 'Add targets first via Edit Targets.');
+  let rows = d.targets.map((t, i) => {
+    const fill = (d.fills||{})[i] || {};
+    return `<div class="fill-row">
+      <div class="fill-row-header">
+        <span class="fill-row-key">${t.name}</span>
+        <span class="fill-row-target">Target: ${t.reps} reps × ${t.sets} sets</span>
+      </div>
+      <div class="fill-inputs">
+        <div><div class="field-label">Sets Done</div><input class="field-input" type="number" id="ex-fill-done-${i}" value="${fill.done||''}" placeholder="0" style="max-width:80px"></div>
+        <div><div class="field-label">Actual Reps</div><input class="field-input" type="number" id="ex-fill-reps-${i}" value="${fill.reps||''}" placeholder="${t.reps}" style="max-width:80px"></div>
+        <div><div class="field-label">Notes</div><input class="field-input" id="ex-fill-note-${i}" value="${esc(fill.note||'')}" placeholder="How did it feel?"></div>
+      </div>
+    </div>`;
+  }).join('');
+  return `<div class="fill-form">${rows}<button class="btn-save" onclick="saveExerciseFill()">Save Progress</button></div>`;
+}
+
+function renderSimpleFill(cat) {
+  const d = currentData[cat];
+  if (!d.targets || !d.targets.length) return emptyState('No items to fill.', 'Add targets first via Edit Targets.');
+  let rows = d.targets.map((t, i) => {
+    const fill = (d.fills||{})[i] || {};
+    return `<div class="fill-row">
+      <div class="fill-row-header">
+        <span class="fill-row-key">${t.priority||'—'}</span>
+        <span class="fill-row-target">${t.name}</span>
+      </div>
+      <div class="fill-inputs">
+        <label style="display:flex;align-items:center;gap:0.5rem;color:var(--text-secondary);font-size:0.85rem;cursor:pointer">
+          <input type="checkbox" id="${cat}-fill-done-${i}" ${fill.done?'checked':''} style="accent-color:var(--saffron)"> Done
+        </label>
+        <input class="field-input" id="${cat}-fill-note-${i}" value="${esc(fill.notes||'')}" placeholder="Progress notes…">
+      </div>
+    </div>`;
+  }).join('');
+  return `<div class="fill-form">${rows}<button class="btn-save" onclick="saveSimpleFill('${cat}')">Save Progress</button></div>`;
+}
+
+function renderBudgetFill() {
+  const d = currentData.budget;
+  const entries = d.entries || [];
+  let rows = entries.map((e, i) => `
+    <div class="budget-entry">
+      <input class="field-input" value="${esc(e.note||'')}" id="budget-note-${i}" placeholder="What for?">
+      <input class="field-input" value="${esc(e.amount||'')}" id="budget-amt-${i}" type="number" placeholder="Amount ₹">
+      <input class="field-input" value="${esc(e.category||'')}" id="budget-cat-${i}" placeholder="Category">
+      <button class="btn-icon danger" onclick="removeBudgetEntry(${i})">✕</button>
+    </div>`).join('');
+  return `<div class="edit-form">
+    <div><div class="field-label">Budget Limit (₹, optional)</div>
+    <input class="field-input" id="budget-limit" value="${esc(d.limit||'')}" placeholder="e.g. 5000" style="max-width:200px"></div>
+    <div class="budget-log" id="budget-log">${rows}</div>
+    <button class="btn-add" onclick="addBudgetEntry()">+ Add Expense</button>
+    <button class="btn-save" onclick="saveBudget()">Save</button>
+  </div>`;
+}
+
+function renderSingleFill(cat) {
+  const d = currentData[cat];
+  if (!d.target) return emptyState(`Set a ${cat} target first.`, 'Use Edit Targets to set your goal.');
+  return `<div class="fill-form">
+    <div class="fill-row">
+      <div class="fill-row-header"><span class="fill-row-key">Goal</span><span class="fill-row-target">${d.target}</span></div>
+      <div class="fill-inputs">
+        <label style="display:flex;align-items:center;gap:0.5rem;color:var(--text-secondary);font-size:0.85rem;cursor:pointer">
+          <input type="checkbox" id="${cat}-done" ${d.done?'checked':''} style="accent-color:var(--saffron)"> Mark as Done
+        </label>
+        <input class="field-input" id="${cat}-fill-note" value="${esc(d.fill||'')}" placeholder="Notes on progress…">
+      </div>
+    </div>
+    <button class="btn-save" onclick="saveSingleFill('${cat}')">Save</button>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════
+// SAVE FUNCTIONS
+// ═══════════════════════════════════════════════════
+function collectDietTargets() {
+  const form = document.getElementById('diet-edit-form');
+  if (!form) return null;
+  const rows = form.querySelectorAll('[data-idx]');
+  const targets = [];
+  rows.forEach(row => {
+    const name = row.querySelector('[data-field="name"]').value.trim();
+    const type = row.querySelector('[data-field="type"]').value.trim();
+    const notes = row.querySelector('[data-field="notes"]').value.trim();
+    if (name) targets.push({ name, type, notes });
+  });
+  return targets;
+}
+
+function saveDietEdit() {
+  const targets = collectDietTargets();
+  if (targets === null) return;
+  currentData.diet.targets = targets;
+  currentData.diet.fills = {};
+  saveCurrent().then(() => { showToast('Diet targets saved ✓'); setMode('diet','display'); renderOverview(); });
+}
+
+function addDietItem() {
+  currentData.diet.targets = collectDietTargets() || currentData.diet.targets || [];
+  currentData.diet.targets.push({ name:'', type:'', notes:'' });
+  renderCategory('diet');
+}
+function removeDietItem(i) {
+  const t = collectDietTargets() || currentData.diet.targets;
+  t.splice(i, 1);
+  currentData.diet.targets = t;
+  renderCategory('diet');
+}
+
+function collectExerciseTargets() {
+  const form = document.getElementById('exercise-edit-form');
+  if (!form) return null;
+  const rows = form.querySelectorAll('[data-idx]');
+  const targets = [];
+  rows.forEach(row => {
+    const name = row.querySelector('[data-field="name"]').value.trim();
+    const reps = row.querySelector('[data-field="reps"]').value;
+    const sets = row.querySelector('[data-field="sets"]').value;
+    if (name) targets.push({ name, reps: parseInt(reps)||0, sets: parseInt(sets)||0 });
+  });
+  return targets;
+}
+
+function saveExerciseEdit() {
+  const targets = collectExerciseTargets();
+  if (!targets) return;
+  currentData.exercise.targets = targets;
+  currentData.exercise.fills = {};
+  saveCurrent().then(() => { showToast('Exercise targets saved ✓'); setMode('exercise','display'); renderOverview(); });
+}
+
+function addExerciseItem() {
+  currentData.exercise.targets = collectExerciseTargets() || currentData.exercise.targets || [];
+  currentData.exercise.targets.push({ name:'', reps:0, sets:0 });
+  renderCategory('exercise');
+}
+function removeExerciseItem(i) {
+  const t = collectExerciseTargets() || currentData.exercise.targets;
+  t.splice(i, 1);
+  currentData.exercise.targets = t;
+  renderCategory('exercise');
+}
+
+function collectSimpleTargets(cat) {
+  const form = document.getElementById(`${cat}-edit-form`);
+  if (!form) return null;
+  const rows = form.querySelectorAll('[data-idx]');
+  const targets = [];
+  rows.forEach(row => {
+    const name = row.querySelector('[data-field="name"]').value.trim();
+    const priority = row.querySelector('[data-field="priority"]').value.trim();
+    if (name) targets.push({ name, priority });
+  });
+  return targets;
+}
+
+function saveSimpleEdit(cat) {
+  const targets = collectSimpleTargets(cat);
+  if (!targets) return;
+  currentData[cat].targets = targets;
+  currentData[cat].fills = {};
+  saveCurrent().then(() => { showToast(`${cat} targets saved ✓`); setMode(cat,'display'); renderOverview(); });
+}
+
+function addSimpleItem(cat) {
+  currentData[cat].targets = collectSimpleTargets(cat) || currentData[cat].targets || [];
+  currentData[cat].targets.push({ name:'', priority:'' });
+  renderCategory(cat);
+}
+function removeSimpleItem(cat, i) {
+  const t = collectSimpleTargets(cat) || currentData[cat].targets;
+  t.splice(i, 1);
+  currentData[cat].targets = t;
+  renderCategory(cat);
+}
+
+function saveSingleEdit(cat) {
+  const val = document.getElementById(`${cat}-target-input`).value.trim();
+  currentData[cat].target = val;
+  currentData[cat].done = false;
+  currentData[cat].fill = '';
+  saveCurrent().then(() => { showToast(`${cat} target saved ✓`); setMode(cat,'display'); renderOverview(); });
+}
+
+function saveDietFill() {
+  const fills = {};
+  (currentData.diet.targets||[]).forEach((t, i) => {
+    const ate = (document.getElementById(`diet-fill-ate-${i}`)||{}).value || '';
+    const cost = (document.getElementById(`diet-fill-cost-${i}`)||{}).value || '';
+    const note = (document.getElementById(`diet-fill-note-${i}`)||{}).value || '';
+    if (ate || cost || note) fills[i] = { ate, cost, note };
+  });
+  currentData.diet.fills = fills;
+  saveCurrent().then(() => { showToast('Diet progress saved ✓'); setMode('diet','display'); renderOverview(); });
+}
+
+function saveExerciseFill() {
+  const fills = {};
+  (currentData.exercise.targets||[]).forEach((t, i) => {
+    const done = (document.getElementById(`ex-fill-done-${i}`)||{}).value || '';
+    const reps = (document.getElementById(`ex-fill-reps-${i}`)||{}).value || '';
+    const note = (document.getElementById(`ex-fill-note-${i}`)||{}).value || '';
+    if (done || reps || note) fills[i] = { done, reps, note };
+  });
+  currentData.exercise.fills = fills;
+  saveCurrent().then(() => { showToast('Exercise progress saved ✓'); setMode('exercise','display'); renderOverview(); });
+}
+
+function saveSimpleFill(cat) {
+  const fills = {};
+  (currentData[cat].targets||[]).forEach((t, i) => {
+    const done = (document.getElementById(`${cat}-fill-done-${i}`)||{}).checked;
+    const notes = (document.getElementById(`${cat}-fill-note-${i}`)||{}).value || '';
+    if (done || notes) fills[i] = { done, notes };
+  });
+  currentData[cat].fills = fills;
+  saveCurrent().then(() => { showToast(`${cat} progress saved ✓`); setMode(cat,'display'); renderOverview(); });
+}
+
+function addBudgetEntry() {
+  const entries = collectBudgetEntries();
+  entries.push({ note:'', amount:'', category:'' });
+  currentData.budget.entries = entries;
+  renderCategory('budget');
+}
+function removeBudgetEntry(i) {
+  const entries = collectBudgetEntries();
+  entries.splice(i, 1);
+  currentData.budget.entries = entries;
+  renderCategory('budget');
+}
+
+function collectBudgetEntries() {
+  const entries = [];
+  const log = document.getElementById('budget-log');
+  if (!log) return currentData.budget.entries || [];
+  const rows = log.querySelectorAll('.budget-entry');
+  rows.forEach((row, i) => {
+    const note = (document.getElementById(`budget-note-${i}`)||{}).value || '';
+    const amount = (document.getElementById(`budget-amt-${i}`)||{}).value || '';
+    const category = (document.getElementById(`budget-cat-${i}`)||{}).value || '';
+    entries.push({ note, amount, category });
+  });
+  return entries;
+}
+
+function saveBudget() {
+  const limit = (document.getElementById('budget-limit')||{}).value || '';
+  currentData.budget.entries = collectBudgetEntries();
+  currentData.budget.limit = limit;
+  saveCurrent().then(() => { showToast('Budget saved ✓'); setMode('budget','display'); renderOverview(); });
+}
+
+function saveSingleFill(cat) {
+  const done = (document.getElementById(`${cat}-done`)||{}).checked;
+  const fill = (document.getElementById(`${cat}-fill-note`)||{}).value || '';
+  currentData[cat].done = done;
+  currentData[cat].fill = fill;
+  saveCurrent().then(() => { showToast(`${cat} saved ✓`); setMode(cat,'display'); renderOverview(); });
+}
+
+// ═══════════════════════════════════════════════════
+// HISTORY
+// ═══════════════════════════════════════════════════
+async function renderHistory() {
+  const all = await dbGetAll('pakshas');
+  all.sort((a,b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+  const list = document.getElementById('history-list');
+  if (!all.length) { list.innerHTML = emptyState('No past pakshas yet.'); return; }
+  list.innerHTML = all.map((p, i) => `
+    <div class="history-card">
+      <div class="history-card-header" onclick="toggleHistory(${i})">
+        <div>
+          <div class="history-card-name">${p.meta ? (p.meta.pakshaName || p.meta.startName) : p.id}</div>
+          <div class="history-card-date">${p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('en-IN') : ''}</div>
+        </div>
+        <span style="color:var(--text-muted)">▾</span>
+      </div>
+      <div class="history-card-body" id="hb-${i}">
+        <pre style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text-secondary);white-space:pre-wrap;word-break:break-word">${JSON.stringify(p.data, null, 2)}</pre>
+      </div>
+    </div>`).join('');
+}
+
+function toggleHistory(i) {
+  const el = document.getElementById(`hb-${i}`);
+  el.classList.toggle('open');
+}
+
+// ═══════════════════════════════════════════════════
+// EXPORT
+// ═══════════════════════════════════════════════════
+function exportCurrent(fmt) {
+  const data = { paksha: currentPaksha, user: userName, exportedAt: new Date().toISOString(), data: currentData };
+  let content, mime, ext;
+  if (fmt === 'json') {
+    content = JSON.stringify(data, null, 2); mime = 'application/json'; ext = 'json';
+  } else if (fmt === 'csv') {
+    content = buildCSV(currentData); mime = 'text/csv'; ext = 'csv';
+  } else {
+    content = buildText(data); mime = 'text/plain'; ext = 'txt';
+  }
+  document.getElementById('export-preview').textContent = content.slice(0, 3000) + (content.length > 3000 ? '\n...(truncated)' : '');
+  download(`paksha_${currentPaksha.id}_${fmt}.${ext}`, content, mime);
+}
+
+async function exportAll(fmt) {
+  const all = await dbGetAll('pakshas');
+  let content, mime, ext;
+  if (fmt === 'json') {
+    content = JSON.stringify({ user: userName, pakshas: all }, null, 2); mime = 'application/json'; ext = 'json';
+  } else {
+    content = all.map(p => buildCSV(p.data)).join('\n\n');
+    mime = 'text/csv'; ext = 'csv';
+  }
+  document.getElementById('export-preview').textContent = content.slice(0, 3000) + (content.length > 3000 ? '\n...(truncated)' : '');
+  download(`paksha_all_${fmt}.${ext}`, content, mime);
+}
+
+function buildCSV(data) {
+  const rows = [['Category','Key','Value','Unit/Notes']];
+  const d = data;
+  (d.diet?.targets||[]).forEach((t,i) => {
+    const f = (d.diet.fills||{})[i]||{};
+    rows.push(['diet', t.name, f.ate||'', `cost:${f.cost||''} ${t.notes||''}`]);
+  });
+  (d.exercise?.targets||[]).forEach((t,i) => {
+    const f = (d.exercise.fills||{})[i]||{};
+    rows.push(['exercise', t.name, `${f.done||0}/${t.sets} sets`, `${t.reps} reps`]);
+  });
+  ['sidequest','learning'].forEach(cat => {
+    (d[cat]?.targets||[]).forEach((t,i) => {
+      const f = (d[cat].fills||{})[i]||{};
+      rows.push([cat, t.name, f.done?'done':'pending', f.notes||'']);
+    });
+  });
+  (d.budget?.entries||[]).forEach(e => rows.push(['budget', e.note, e.amount, e.category]));
+  if (d.hometask?.target) rows.push(['hometask', d.hometask.target, d.hometask.done?'done':'', d.hometask.fill||'']);
+  if (d.sadhana?.target) rows.push(['sadhana', d.sadhana.target, d.sadhana.done?'done':'', d.sadhana.fill||'']);
+  return rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+}
+
+function buildText(data) {
+  let t = `PAKSHA TRACKER EXPORT\n${'='.repeat(40)}\n`;
+  t += `User: ${data.user}\nPaksha: ${data.paksha?.pakshaName || data.paksha?.startName}\nExported: ${new Date().toLocaleString('en-IN')}\n\n`;
+  const d = data.data;
+  t += '--- DIET ---\n';
+  (d.diet?.targets||[]).forEach((item,i) => {
+    const f = (d.diet.fills||{})[i]||{};
+    t += `  • ${item.name} (${item.type}) → ${f.ate||'—'} ₹${f.cost||'?'}\n`;
+  });
+  t += '\n--- EXERCISE ---\n';
+  (d.exercise?.targets||[]).forEach((item,i) => {
+    const f = (d.exercise.fills||{})[i]||{};
+    t += `  • ${item.name}: ${item.reps}r×${item.sets}s → ${f.done||0} sets done\n`;
+  });
+  ['sidequest','learning'].forEach(cat => {
+    t += `\n--- ${cat.toUpperCase()} ---\n`;
+    (d[cat]?.targets||[]).forEach((item,i) => {
+      const f = (d[cat].fills||{})[i]||{};
+      t += `  • ${item.name} [${item.priority||'—'}] → ${f.done?'✓':f.notes||'pending'}\n`;
+    });
+  });
+  t += '\n--- BUDGET ---\n';
+  (d.budget?.entries||[]).forEach(e => t += `  • ${e.note} — ₹${e.amount} (${e.category||'misc'})\n`);
+  t += `  Total: ₹${getBudgetTotal()}\n`;
+  t += `\n--- HOMETASK ---\n  ${d.hometask?.target||'—'} → ${d.hometask?.done?'Done':d.hometask?.fill||'Pending'}\n`;
+  t += `\n--- SADHANA ---\n  ${d.sadhana?.target||'—'} → ${d.sadhana?.done?'Done':d.sadhana?.fill||'Pending'}\n`;
+  return t;
+}
+
+function download(filename, content, mime) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type: mime }));
+  a.download = filename; a.click();
+}
+
+// ═══════════════════════════════════════════════════
+// NAV
+// ═══════════════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`tab-${name}`).classList.add('active');
+  document.querySelector(`[data-tab="${name}"]`).classList.add('active');
+  if (name === 'history') renderHistory();
+  if (name === 'overview') renderOverview();
+}
+
+// ═══════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function attachCategoryEvents(cat, schema, mode) {
+  // No special events needed — all handled via inline onclick / IDs
+}
+
+// ═══════════════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════════════
+window.addEventListener('load', () => {
+  // Register Service Worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(err => console.warn('SW:', err));
+  }
+
+  const saved = localStorage.getItem('paksha_user');
+  if (saved) {
+    userName = saved;
+    document.getElementById('onboarding').style.display = 'none';
+    initApp();
+  }
+});
+</script>
+</body>
+</html>
