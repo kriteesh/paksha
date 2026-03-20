@@ -487,12 +487,7 @@ main { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
   <header>
     <div class="header-inner">
       <div class="logo">Paksha<span>.</span></div>
-      <button id="deva-toggle" onclick="toggleDeva()" title="Toggle Devanagari" style="
-        background:transparent;border:1px solid var(--border);border-radius:20px;
-        color:var(--text-muted);font-size:0.7rem;padding:0.25rem 0.6rem;
-        cursor:pointer;font-family:var(--font-mono);letter-spacing:0.05em;
-        transition:all 0.2s;white-space:nowrap;flex-shrink:0
-      ">अ</button>
+
       <div class="paksha-info">
         <div class="paksha-name" id="hdr-paksha-name">—</div>
         <div class="paksha-meta" id="hdr-paksha-meta">—</div>
@@ -548,7 +543,7 @@ main { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
       <div class="section-header">
         <div>
           <div class="section-title">🥗 Diet</div>
-          <div class="section-subtitle">Plan meals, track dishes, note costs & seasonality</div>
+          <div class="section-subtitle">Plan meals, track dishes, note seasonality & rate them</div>
         </div>
       </div>
       <div id="diet-content"></div>
@@ -884,11 +879,7 @@ function getCurrentPaksha(now = new Date()) {
 
 // Tithi names: Day 0 = अन्वेषण दिवस (the purnima/amavasya itself)
 // Day 1 = प्रथमा, Day 2 = द्वितीया … Day 14 = चतुर्दशी
-const TITHI_NAMES_DEVA = [
-  'अन्वेषण दिवस','प्रथमा','द्वितीया','तृतीया','चतुर्थी',
-  'पञ्चमी','षष्ठी','सप्तमी','अष्टमी','नवमी',
-  'दशमी','एकादशी','द्वादशी','त्रयोदशी','चतुर्दशी'
-];
+
 const TITHI_NAMES_EN = [
   'Anveshana','Prathama','Dwitiya','Tritiya','Chaturthi',
   'Panchami','Shashthi','Saptami','Ashtami','Navami',
@@ -987,17 +978,13 @@ async function saveCurrent() {
 function renderHeader() {
   const now = new Date();
   const prog = getPakshaProgress(currentPaksha, now);
-  const isDeva = window.devaMode || false;
-  const pName = isDeva ? devaLabel(currentPaksha.pakshaName) : currentPaksha.pakshaName;
-  document.getElementById('hdr-paksha-name').textContent = pName;
+  document.getElementById('hdr-paksha-name').textContent = currentPaksha.pakshaName;
   const nextSymbol = currentPaksha.type === 'purnima' ? '🌕' : '🌑';
   let tithiLabel;
   if (currentPaksha.isPrepDay) {
-    tithiLabel = isDeva ? 'अन्वेषण दिवस' : 'Anveshana Divas';
-    tithiLabel += ' · ' + (isDeva ? devaLabel(currentPaksha.pakshaName) : currentPaksha.pakshaName) + ' starts soon';
+    tithiLabel = 'Anveshana Divas · ' + currentPaksha.pakshaName + ' starts soon';
   } else {
-    const tName = isDeva ? TITHI_NAMES_DEVA[prog.tithiIndex] : TITHI_NAMES_EN[prog.tithiIndex];
-    tithiLabel = `${tName} · ${nextSymbol} ${currentPaksha.endName.replace(/\(.*?\)/g,'').trim()} ahead`;
+    tithiLabel = `${TITHI_NAMES_EN[prog.tithiIndex]} · ${nextSymbol} ${currentPaksha.endName.replace(/\(.*?\)/g,'').trim()} ahead`;
   }
   document.getElementById('hdr-paksha-meta').textContent = tithiLabel;
   document.getElementById('hdr-days-left').textContent = currentPaksha.isPrepDay ? '०' : prog.daysLeft;
@@ -1025,15 +1012,13 @@ function renderOverview() {
   const now = new Date();
   const prog = getPakshaProgress(currentPaksha, now);
 
-  const isDeva = window.devaMode || false;
   let tithiNote;
   if (currentPaksha.isPrepDay) {
-    tithiNote = ' · 🪔 ' + (isDeva ? 'अन्वेषण दिवस — लक्ष्य निर्धारित करें' : 'Anveshana Divas — set your targets!');
+    tithiNote = ' · 🪔 Anveshana Divas — set your targets!';
   } else {
-    const tName = isDeva ? TITHI_NAMES_DEVA[prog.tithiIndex] : TITHI_NAMES_EN[prog.tithiIndex];
-    tithiNote = ' · ' + tName + ` (${prog.daysCurrent}/${prog.daysTotal})`;
+    tithiNote = ' · ' + TITHI_NAMES_EN[prog.tithiIndex] + ` (${prog.daysCurrent}/${prog.daysTotal})`;
   }
-  document.getElementById('overview-subtitle').textContent = (isDeva ? devaLabel(currentPaksha.pakshaName) : currentPaksha.pakshaName) + tithiNote;
+  document.getElementById('overview-subtitle').textContent = currentPaksha.pakshaName + tithiNote;
 
   const stats = document.getElementById('overview-stats');
   stats.innerHTML = `
@@ -1147,14 +1132,14 @@ function renderDietDisplay(d) {
   if (!d.targets || !d.targets.length) return emptyState('No diet items planned yet.', 'Switch to Edit Targets to add meals, drinks, etc.');
   return `<ul class="target-list">${d.targets.map((t, i) => {
     const fill = d.fills && d.fills[i];
-    const cls = fill ? (fill.cost ? 'filled' : 'filled') : '';
+    const cls = fill ? 'filled' : '';
     return `<li class="target-item ${cls}">
       <span class="target-key">${t.type || 'item'}</span>
       <div style="flex:1">
         <div class="target-val">${t.name || ''}</div>
         ${t.notes ? `<div style="font-size:0.72rem;color:var(--text-muted)">${t.notes}</div>` : ''}
       </div>
-      ${fill ? `<span class="target-filled">✓ ₹${fill.cost||'—'}</span>` : ''}
+      ${fill ? `<span class="target-filled">${fill.rating ? '★' + fill.rating + '/5' : '✓'}</span>` : ''}
     </li>`;
   }).join('')}</ul>`;
 }
@@ -1324,7 +1309,7 @@ function renderDietFill() {
       </div>
       <div class="fill-inputs">
         <input class="field-input" placeholder="Ate / drank?" id="diet-fill-ate-${i}" value="${esc(fill.ate||'')}">
-        <input class="field-input" placeholder="Cost ₹" id="diet-fill-cost-${i}" value="${esc(fill.cost||'')}" style="max-width:90px">
+        <input class="field-input" placeholder="Rating 1-5 ★" id="diet-fill-rating-${i}" value="${esc(fill.rating||'')}" style="max-width:90px" type="number" min="1" max="5">
         <input class="field-input" placeholder="Notes" id="diet-fill-note-${i}" value="${esc(fill.note||'')}">
       </div>
     </div>`;
@@ -1567,9 +1552,9 @@ function saveDietFill() {
   const fills = {};
   (currentData.diet.targets||[]).forEach((t, i) => {
     const ate = (document.getElementById(`diet-fill-ate-${i}`)||{}).value || '';
-    const cost = (document.getElementById(`diet-fill-cost-${i}`)||{}).value || '';
+    const rating = (document.getElementById(`diet-fill-rating-${i}`)||{}).value || '';
     const note = (document.getElementById(`diet-fill-note-${i}`)||{}).value || '';
-    if (ate || cost || note) fills[i] = { ate, cost, note };
+    if (ate || rating || note) fills[i] = { ate, rating, note };
   });
   currentData.diet.fills = fills;
   saveCurrent().then(() => { showToast('Diet progress saved ✓'); setMode('diet','display'); renderOverview(); });
@@ -1703,7 +1688,7 @@ function buildCSV(data) {
   const d = data;
   (d.diet?.targets||[]).forEach((t,i) => {
     const f = (d.diet.fills||{})[i]||{};
-    rows.push(['diet', t.name, f.ate||'', `cost:${f.cost||''} ${t.notes||''}`]);
+    rows.push(['diet', t.name, f.ate||'', `rating:${f.rating||''} ${t.notes||''}`]);
   });
   (d.exercise?.targets||[]).forEach((t,i) => {
     const f = (d.exercise.fills||{})[i]||{};
@@ -1728,7 +1713,7 @@ function buildText(data) {
   t += '--- DIET ---\n';
   (d.diet?.targets||[]).forEach((item,i) => {
     const f = (d.diet.fills||{})[i]||{};
-    t += `  • ${item.name} (${item.type}) → ${f.ate||'—'} ₹${f.cost||'?'}\n`;
+    t += `  • ${item.name} (${item.type}) → ${f.ate||'—'} ${f.rating ? '★'+f.rating+'/5' : ''}\n`;
   });
   t += '\n--- EXERCISE ---\n';
   (d.exercise?.targets||[]).forEach((item,i) => {
@@ -1781,90 +1766,6 @@ function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot
 
 function attachCategoryEvents(cat, schema, mode) {
   // No special events needed — all handled via inline onclick / IDs
-}
-
-// ═══════════════════════════════════════════════════
-// DEVANAGARI MODE
-// ═══════════════════════════════════════════════════
-window.devaMode = false;
-
-const DEVA_MAP = {
-  // Paksha names
-  'Chaitra Shukla':      'चैत्र शुक्ल',
-  'Chaitra Krishna':     'चैत्र कृष्ण',
-  'Vaishakha Shukla':    'वैशाख शुक्ल',
-  'Vaishakha Krishna':   'वैशाख कृष्ण',
-  'Jyeshtha Shukla':     'ज्येष्ठ शुक्ल',
-  'Jyeshtha Krishna':    'ज्येष्ठ कृष्ण',
-  'Ashadha Shukla':      'आषाढ़ शुक्ल',
-  'Ashadha Krishna':     'आषाढ़ कृष्ण',
-  'Shravana Shukla':     'श्रावण शुक्ल',
-  'Shravana Krishna':    'श्रावण कृष्ण',
-  'Bhadrapada Shukla':   'भाद्रपद शुक्ल',
-  'Bhadrapada Krishna':  'भाद्रपद कृष्ण',
-  'Ashwina Shukla':      'आश्विन शुक्ल',
-  'Ashwina Krishna':     'आश्विन कृष्ण',
-  'Kartika Shukla':      'कार्तिक शुक्ल',
-  'Kartika Krishna':     'कार्तिक कृष्ण',
-  'Margashirsha Shukla': 'मार्गशीर्ष शुक्ल',
-  'Margashirsha Krishna':'मार्गशीर्ष कृष्ण',
-  'Paush Shukla':        'पौष शुक्ल',
-  'Paush Krishna':       'पौष कृष्ण',
-  'Magha Shukla':        'माघ शुक्ल',
-  'Magha Krishna':       'माघ कृष्ण',
-  'Phalguna Shukla':     'फाल्गुन शुक्ल',
-  'Phalguna Krishna':    'फाल्गुन कृष्ण',
-  'Adhika Jyeshtha Shukla':  'अधिक ज्येष्ठ शुक्ल',
-  'Adhika Jyeshtha Krishna': 'अधिक ज्येष्ठ कृष्ण',
-  // Category labels
-  'Overview':    'अवलोकन',
-  'Diet':        'आहार',
-  'Exercise':    'व्यायाम',
-  'Sidequest':   'पार्श्वकार्य',
-  'Learning':    'अध्ययन',
-  'Budget':      'बजट',
-  'Hometask':    'गृहकार्य',
-  'Sadhana':     'साधना',
-  'History':     'इतिहास',
-  'Export':      'निर्यात',
-  // UI labels
-  'View':              'देखें',
-  'Edit Targets':      'लक्ष्य संपादित करें',
-  'Fill Progress':     'प्रगति भरें',
-  'Save Targets':      'लक्ष्य सहेजें',
-  'Save Progress':     'प्रगति सहेजें',
-  'Save':              'सहेजें',
-  'Days Left':         'शेष दिन',
-  'Progress':          'प्रगति',
-  'Budget Spent':      'व्यय',
-  'Next Milestone':    'अगला पड़ाव',
-};
-
-function devaLabel(text) {
-  return DEVA_MAP[text] || text;
-}
-
-function toggleDeva() {
-  window.devaMode = !window.devaMode;
-  const btn = document.getElementById('deva-toggle');
-  if (btn) {
-    btn.textContent = window.devaMode ? 'A' : 'अ';
-    btn.style.color = window.devaMode ? 'var(--turmeric)' : 'var(--text-muted)';
-    btn.style.borderColor = window.devaMode ? 'var(--turmeric)' : 'var(--border)';
-  }
-  // Re-render all nav tabs
-  document.querySelectorAll('.nav-tab').forEach(tab => {
-    const key = tab.dataset.tab;
-    if (!key) return;
-    const icon = tab.querySelector('.icon');
-    const iconHTML = icon ? icon.outerHTML : '';
-    const label = CATEGORIES[key] ? (window.devaMode ? devaLabel(CATEGORIES[key].label) : CATEGORIES[key].label) : key;
-    tab.innerHTML = iconHTML + ' ' + label;
-    if (icon) tab.insertBefore(Object.assign(document.createElement('span'), {className:'icon', textContent: icon.textContent}), tab.firstChild);
-  });
-  // Re-render header and overview
-  renderHeader();
-  renderOverview();
 }
 
 // ═══════════════════════════════════════════════════
