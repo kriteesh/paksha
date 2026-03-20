@@ -487,6 +487,12 @@ main { max-width: 1100px; margin: 0 auto; padding: 1.5rem; }
   <header>
     <div class="header-inner">
       <div class="logo">Paksha<span>.</span></div>
+      <button id="deva-toggle" onclick="toggleDeva()" title="Toggle Devanagari" style="
+        background:transparent;border:1px solid var(--border);border-radius:20px;
+        color:var(--text-muted);font-size:0.7rem;padding:0.25rem 0.6rem;
+        cursor:pointer;font-family:var(--font-mono);letter-spacing:0.05em;
+        transition:all 0.2s;white-space:nowrap;flex-shrink:0
+      ">अ</button>
       <div class="paksha-info">
         <div class="paksha-name" id="hdr-paksha-name">—</div>
         <div class="paksha-meta" id="hdr-paksha-meta">—</div>
@@ -689,7 +695,7 @@ const PAKSHA_DATES = [
   { name:"Kartika Purnima",                    type:"purnima",  start:"2025-11-23T23:42", end:"2025-11-24T20:23" },
   { name:"Margashirsha Amavasya",              type:"amavasya", start:"2025-12-08T04:12", end:"2025-12-09T06:21" },
   { name:"Margashirsha Purnima",               type:"purnima",  start:"2025-12-23T10:47", end:"2025-12-24T06:57" },
-  // ── 2026 ─────────────────────────────────────────────────────────────────
+  // ── 2026 (exact user-supplied timings) ──────────────────────────────────
   { name:"Paush Purnima",                      type:"purnima",  start:"2026-01-02T18:53", end:"2026-01-03T15:32" },
   { name:"Magha Amavasya",                     type:"amavasya", start:"2026-01-18T00:03", end:"2026-01-19T01:21" },
   { name:"Magha Purnima",                      type:"purnima",  start:"2026-02-01T05:53", end:"2026-02-02T03:39" },
@@ -720,7 +726,7 @@ const PAKSHA_DATES = [
 // STORAGE HELPERS
 // ═══════════════════════════════════════════════════
 const DB_NAME = 'PakshaTracker';
-const DB_VERSION = 1;
+const DB_VERSION = 1; // bump only for schema changes; data is safe across updates
 let db = null;
 
 function openDB() {
@@ -821,10 +827,11 @@ function getCurrentPaksha(now = new Date()) {
         startName: tithi.name,
         endName: nextTithi.name,
         type: nextTithi.type,
-        start: ts,   // display: paksha "starts" at this tithi
+        start: ts,
         end: e,
-        isPrepDay: true,  // flag: we are in prep/target-setting mode
-        formalStart: ts,  // the actual first moment of this paksha interval
+        formalEnd: te,    // tithi ends here = when Day 1 (Prathama) begins
+        isPrepDay: true,
+        formalStart: ts,
         index: i
       };
     }
@@ -844,6 +851,7 @@ function getCurrentPaksha(now = new Date()) {
         endName: sorted[i+1].name,
         type: sorted[i+1].type,
         start: s, end: e,
+        formalEnd: new Date(sorted[i].end), // tithi ends = Day 1 begins
         isPrepDay: false,
         formalStart: s,
         index: i
@@ -874,14 +882,29 @@ function getCurrentPaksha(now = new Date()) {
   };
 }
 
+// Tithi names: Day 0 = अन्वेषण दिवस (the purnima/amavasya itself)
+// Day 1 = प्रथमा, Day 2 = द्वितीया … Day 14 = चतुर्दशी
+const TITHI_NAMES_DEVA = [
+  'अन्वेषण दिवस','प्रथमा','द्वितीया','तृतीया','चतुर्थी',
+  'पञ्चमी','षष्ठी','सप्तमी','अष्टमी','नवमी',
+  'दशमी','एकादशी','द्वादशी','त्रयोदशी','चतुर्दशी'
+];
+const TITHI_NAMES_EN = [
+  'Anveshana','Prathama','Dwitiya','Tritiya','Chaturthi',
+  'Panchami','Shashthi','Saptami','Ashtami','Navami',
+  'Dashami','Ekadashi','Dwadashi','Trayodashi','Chaturdashi'
+];
+
 function getPakshaProgress(paksha, now = new Date()) {
   const total = paksha.end - paksha.start;
   const elapsed = Math.min(Math.max(now - paksha.start, 0), total);
   const pct = elapsed / total;
-  const daysTotal = Math.ceil(total / 86400000);
-  const daysCurrent = Math.ceil(elapsed / 86400000);
+  const daysTotal = Math.round(total / 86400000); // ~15
+  // Day 0 = the tithi day itself (isPrepDay), Day 1 = first full day after tithi ends
+  const daysCurrent = paksha.isPrepDay ? 0 : Math.max(1, Math.ceil((now - new Date(paksha.formalEnd || paksha.start)) / 86400000));
   const daysLeft = Math.max(0, Math.ceil((paksha.end - now) / 86400000));
-  return { pct, daysTotal, daysCurrent, daysLeft };
+  const tithiIndex = Math.min(daysCurrent, 14);
+  return { pct, daysTotal, daysCurrent, daysLeft, tithiIndex };
 }
 
 // ═══════════════════════════════════════════════════
@@ -964,13 +987,20 @@ async function saveCurrent() {
 function renderHeader() {
   const now = new Date();
   const prog = getPakshaProgress(currentPaksha, now);
-  document.getElementById('hdr-paksha-name').textContent = currentPaksha.pakshaName;
+  const isDeva = window.devaMode || false;
+  const pName = isDeva ? devaLabel(currentPaksha.pakshaName) : currentPaksha.pakshaName;
+  document.getElementById('hdr-paksha-name').textContent = pName;
   const nextSymbol = currentPaksha.type === 'purnima' ? '🌕' : '🌑';
-  const dayLabel = currentPaksha.isPrepDay
-    ? `${nextSymbol} Prep day · ${currentPaksha.pakshaName} begins tomorrow`
-    : `Day ${prog.daysCurrent} of ${prog.daysTotal} · ${nextSymbol} ${currentPaksha.endName} ahead`;
-  document.getElementById('hdr-paksha-meta').textContent = dayLabel;
-  document.getElementById('hdr-days-left').textContent = currentPaksha.isPrepDay ? '~15' : prog.daysLeft;
+  let tithiLabel;
+  if (currentPaksha.isPrepDay) {
+    tithiLabel = isDeva ? 'अन्वेषण दिवस' : 'Anveshana Divas';
+    tithiLabel += ' · ' + (isDeva ? devaLabel(currentPaksha.pakshaName) : currentPaksha.pakshaName) + ' starts soon';
+  } else {
+    const tName = isDeva ? TITHI_NAMES_DEVA[prog.tithiIndex] : TITHI_NAMES_EN[prog.tithiIndex];
+    tithiLabel = `${tName} · ${nextSymbol} ${currentPaksha.endName.replace(/\(.*?\)/g,'').trim()} ahead`;
+  }
+  document.getElementById('hdr-paksha-meta').textContent = tithiLabel;
+  document.getElementById('hdr-days-left').textContent = currentPaksha.isPrepDay ? '०' : prog.daysLeft;
 }
 
 function renderPhaseStrip() {
@@ -995,8 +1025,15 @@ function renderOverview() {
   const now = new Date();
   const prog = getPakshaProgress(currentPaksha, now);
 
-  const prepNote = currentPaksha.isPrepDay ? ' · 🪔 Prep day — set your targets!' : ` · Day ${prog.daysCurrent} of ${prog.daysTotal}`;
-  document.getElementById('overview-subtitle').textContent = currentPaksha.pakshaName + prepNote;
+  const isDeva = window.devaMode || false;
+  let tithiNote;
+  if (currentPaksha.isPrepDay) {
+    tithiNote = ' · 🪔 ' + (isDeva ? 'अन्वेषण दिवस — लक्ष्य निर्धारित करें' : 'Anveshana Divas — set your targets!');
+  } else {
+    const tName = isDeva ? TITHI_NAMES_DEVA[prog.tithiIndex] : TITHI_NAMES_EN[prog.tithiIndex];
+    tithiNote = ' · ' + tName + ` (${prog.daysCurrent}/${prog.daysTotal})`;
+  }
+  document.getElementById('overview-subtitle').textContent = (isDeva ? devaLabel(currentPaksha.pakshaName) : currentPaksha.pakshaName) + tithiNote;
 
   const stats = document.getElementById('overview-stats');
   stats.innerHTML = `
@@ -1128,7 +1165,7 @@ function renderExerciseDisplay(d) {
     const fill = d.fills && d.fills[i];
     return `<li class="target-item ${fill ? 'filled' : ''}">
       <span class="target-key">${t.name}</span>
-      <span class="target-val">${t.reps} reps × ${t.sets} sets</span>
+      <span class="target-val">${t.qty||t.reps||0} ${t.unit||'reps'} × ${t.sets} sets</span>
       ${fill ? `<span class="target-filled">${fill.done}/${t.sets} done</span>` : ''}
     </li>`;
   }).join('')}</ul>`;
@@ -1193,45 +1230,66 @@ function renderEditMode(cat, schema) {
 
 function renderDietEdit() {
   const items = currentData.diet.targets || [];
-  let rows = items.map((t, i) => `
-    <div class="field-row triple" data-idx="${i}">
-      <div><div class="field-label">Name</div><input class="field-input" data-field="name" value="${esc(t.name||'')}" placeholder="Dish / drink name"></div>
-      <div><div class="field-label">Type</div><input class="field-input" data-field="type" value="${esc(t.type||'')}" placeholder="meal / drink"></div>
-      <div><div class="field-label">Notes</div><input class="field-input" data-field="notes" value="${esc(t.notes||'')}" placeholder="seasonal, brand…"></div>
-      <button class="btn-icon danger" onclick="removeDietItem(${i})">✕</button>
-    </div>`).join('');
-  return `<div class="edit-form" id="diet-edit-form">${rows}
-    <button class="btn-add" onclick="addDietItem()">+ Add Item</button>
-    <button class="btn-save" onclick="saveDietEdit()">Save Targets</button>
+  // Serialise existing items to bulk text: name, type, notes (one per line)
+  const bulk = items.map(t => [t.name||'', t.type||'', t.notes||''].join(', ')).join('\n');
+  return `<div class="edit-form">
+    <div class="field-label" style="margin-bottom:0.4rem">
+      Bulk entry — one item per line: <code style="color:var(--turmeric)">name, type, notes</code>
+      <span style="color:var(--text-muted);font-size:0.7rem;margin-left:0.5rem">(type & notes optional)</span>
+    </div>
+    <div class="field-label" style="color:var(--text-muted);font-size:0.7rem;margin-bottom:0.5rem">
+      Examples:<br>
+      Dal Tadka, meal, seasonal winter<br>
+      Masala Chai, drink, morning ritual<br>
+      Alphonso Mango, fruit
+    </div>
+    <textarea id="diet-bulk-input" class="field-input" rows="10"
+      style="resize:vertical;font-family:var(--font-mono);font-size:0.8rem;line-height:1.6"
+      placeholder="Dal Tadka, meal, seasonal&#10;Masala Chai, drink, morning&#10;Alphonso Mango, fruit">${esc(bulk)}</textarea>
+    <button class="btn-save" onclick="saveDietBulk()">Save Targets</button>
   </div>`;
 }
 
 function renderExerciseEdit() {
   const items = currentData.exercise.targets || [];
-  let rows = items.map((t, i) => `
-    <div class="field-row triple" data-idx="${i}">
-      <div><div class="field-label">Exercise</div><input class="field-input" data-field="name" value="${esc(t.name||'')}" placeholder="Pushups, Squats…"></div>
-      <div><div class="field-label">Reps</div><input class="field-input" data-field="reps" type="number" value="${t.reps||''}" placeholder="20" style="width:100%"></div>
-      <div><div class="field-label">Sets</div><input class="field-input" data-field="sets" type="number" value="${t.sets||''}" placeholder="3" style="width:100%"></div>
-      <button class="btn-icon danger" onclick="removeExerciseItem(${i})">✕</button>
-    </div>`).join('');
-  return `<div class="edit-form" id="exercise-edit-form">${rows}
-    <button class="btn-add" onclick="addExerciseItem()">+ Add Exercise</button>
-    <button class="btn-save" onclick="saveExerciseEdit()">Save Targets</button>
+  // Serialise: name, qty x unit x sets  e.g. "Pushups, 20 reps x 3 sets"
+  const bulk = items.map(t => {
+    const qty = t.qty || t.reps || '';
+    const unit = t.unit || 'reps';
+    const sets = t.sets || '';
+    return `${t.name||''}, ${qty} ${unit} x ${sets} sets`;
+  }).join('\n');
+  return `<div class="edit-form">
+    <div class="field-label" style="margin-bottom:0.4rem">
+      Bulk entry — one exercise per line: <code style="color:var(--turmeric)">name, qty unit x sets sets</code>
+    </div>
+    <div class="field-label" style="color:var(--text-muted);font-size:0.7rem;margin-bottom:0.5rem">
+      Unit can be: <strong>reps</strong>, <strong>steps</strong>, <strong>mins</strong>, <strong>km</strong>, or anything<br>
+      Examples:<br>
+      Pushups, 20 reps x 3 sets<br>
+      Morning Walk, 5000 steps x 1 sets<br>
+      Surya Namaskar, 12 rounds x 2 sets<br>
+      Pranayama, 10 mins x 1 sets
+    </div>
+    <textarea id="exercise-bulk-input" class="field-input" rows="8"
+      style="resize:vertical;font-family:var(--font-mono);font-size:0.8rem;line-height:1.6"
+      placeholder="Pushups, 20 reps x 3 sets&#10;Squats, 30 reps x 3 sets&#10;Morning Walk, 5000 steps x 1 sets">${esc(bulk)}</textarea>
+    <button class="btn-save" onclick="saveExerciseBulk()">Save Targets</button>
   </div>`;
 }
 
 function renderSimpleEdit(cat) {
   const items = currentData[cat].targets || [];
-  let rows = items.map((t, i) => `
-    <div class="field-row" data-idx="${i}">
-      <div><div class="field-label">Task / Goal</div><input class="field-input" data-field="name" value="${esc(t.name||'')}" placeholder="What do you want to do?"></div>
-      <div><div class="field-label">Priority</div><input class="field-input" data-field="priority" value="${esc(t.priority||'')}" placeholder="high / med / low" style="width:90px"></div>
-      <button class="btn-icon danger" onclick="removeSimpleItem('${cat}', ${i})">✕</button>
-    </div>`).join('');
-  return `<div class="edit-form" id="${cat}-edit-form">${rows}
-    <button class="btn-add" onclick="addSimpleItem('${cat}')">+ Add Item</button>
-    <button class="btn-save" onclick="saveSimpleEdit('${cat}')">Save Targets</button>
+  const bulk = items.map(t => t.priority ? `${t.name||''}, ${t.priority}` : (t.name||'')).join('\n');
+  return `<div class="edit-form">
+    <div class="field-label" style="margin-bottom:0.4rem">
+      Bulk entry — one item per line: <code style="color:var(--turmeric)">task, priority</code>
+      <span style="color:var(--text-muted);font-size:0.7rem;margin-left:0.5rem">(priority optional: high / med / low)</span>
+    </div>
+    <textarea id="${cat}-bulk-input" class="field-input" rows="8"
+      style="resize:vertical;font-family:var(--font-mono);font-size:0.8rem;line-height:1.6"
+      placeholder="Learn basic woodworking, high&#10;Read Arthashastra chapters 1-3, med&#10;Fix the squeaky door hinge">${esc(bulk)}</textarea>
+    <button class="btn-save" onclick="saveSimpleBulk('${cat}')">Save Targets</button>
   </div>`;
 }
 
@@ -1282,7 +1340,7 @@ function renderExerciseFill() {
     return `<div class="fill-row">
       <div class="fill-row-header">
         <span class="fill-row-key">${t.name}</span>
-        <span class="fill-row-target">Target: ${t.reps} reps × ${t.sets} sets</span>
+        <span class="fill-row-target">Target: ${t.qty||t.reps||0} ${t.unit||'reps'} × ${t.sets} sets</span>
       </div>
       <div class="fill-inputs">
         <div><div class="field-label">Sets Done</div><input class="field-input" type="number" id="ex-fill-done-${i}" value="${fill.done||''}" placeholder="0" style="max-width:80px"></div>
@@ -1463,6 +1521,48 @@ function saveSingleEdit(cat) {
   saveCurrent().then(() => { showToast(`${cat} target saved ✓`); setMode(cat,'display'); renderOverview(); });
 }
 
+// ── BULK PARSE SAVES ──────────────────────────────────────────────────────
+function saveDietBulk() {
+  const raw = (document.getElementById('diet-bulk-input')||{}).value || '';
+  const targets = raw.split('\n').map(line => line.trim()).filter(Boolean).map(line => {
+    const parts = line.split(',').map(p => p.trim());
+    return { name: parts[0]||'', type: parts[1]||'', notes: parts[2]||'' };
+  });
+  currentData.diet.targets = targets;
+  currentData.diet.fills = {};
+  saveCurrent().then(() => { showToast(`${targets.length} diet items saved ✓`); setMode('diet','display'); renderOverview(); });
+}
+
+function saveExerciseBulk() {
+  const raw = (document.getElementById('exercise-bulk-input')||{}).value || '';
+  const targets = raw.split('\n').map(line => line.trim()).filter(Boolean).map(line => {
+    // Format: "name, qty unit x sets sets"  e.g. "Pushups, 20 reps x 3 sets"
+    const commaIdx = line.indexOf(',');
+    const name = commaIdx >= 0 ? line.slice(0, commaIdx).trim() : line.trim();
+    const rest = commaIdx >= 0 ? line.slice(commaIdx+1).trim() : '';
+    // Parse "20 reps x 3 sets" — qty, unit, sets
+    const m = rest.match(/(\d+)\s*([a-zA-Z]+)\s*[x×]\s*(\d+)/i);
+    const qty = m ? parseInt(m[1]) : 0;
+    const unit = m ? m[2].toLowerCase() : 'reps';
+    const sets = m ? parseInt(m[3]) : 1;
+    return { name, qty, unit, sets, reps: qty }; // keep reps for backward compat
+  });
+  currentData.exercise.targets = targets;
+  currentData.exercise.fills = {};
+  saveCurrent().then(() => { showToast(`${targets.length} exercises saved ✓`); setMode('exercise','display'); renderOverview(); });
+}
+
+function saveSimpleBulk(cat) {
+  const raw = (document.getElementById(`${cat}-bulk-input`)||{}).value || '';
+  const targets = raw.split('\n').map(line => line.trim()).filter(Boolean).map(line => {
+    const parts = line.split(',').map(p => p.trim());
+    return { name: parts[0]||'', priority: parts[1]||'' };
+  });
+  currentData[cat].targets = targets;
+  currentData[cat].fills = {};
+  saveCurrent().then(() => { showToast(`${targets.length} items saved ✓`); setMode(cat,'display'); renderOverview(); });
+}
+
 function saveDietFill() {
   const fills = {};
   (currentData.diet.targets||[]).forEach((t, i) => {
@@ -1607,7 +1707,7 @@ function buildCSV(data) {
   });
   (d.exercise?.targets||[]).forEach((t,i) => {
     const f = (d.exercise.fills||{})[i]||{};
-    rows.push(['exercise', t.name, `${f.done||0}/${t.sets} sets`, `${t.reps} reps`]);
+    rows.push(['exercise', t.name, `${f.done||0}/${t.sets} sets`, `${t.qty||t.reps||0} ${t.unit||'reps'}`]);
   });
   ['sidequest','learning'].forEach(cat => {
     (d[cat]?.targets||[]).forEach((t,i) => {
@@ -1681,6 +1781,90 @@ function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot
 
 function attachCategoryEvents(cat, schema, mode) {
   // No special events needed — all handled via inline onclick / IDs
+}
+
+// ═══════════════════════════════════════════════════
+// DEVANAGARI MODE
+// ═══════════════════════════════════════════════════
+window.devaMode = false;
+
+const DEVA_MAP = {
+  // Paksha names
+  'Chaitra Shukla':      'चैत्र शुक्ल',
+  'Chaitra Krishna':     'चैत्र कृष्ण',
+  'Vaishakha Shukla':    'वैशाख शुक्ल',
+  'Vaishakha Krishna':   'वैशाख कृष्ण',
+  'Jyeshtha Shukla':     'ज्येष्ठ शुक्ल',
+  'Jyeshtha Krishna':    'ज्येष्ठ कृष्ण',
+  'Ashadha Shukla':      'आषाढ़ शुक्ल',
+  'Ashadha Krishna':     'आषाढ़ कृष्ण',
+  'Shravana Shukla':     'श्रावण शुक्ल',
+  'Shravana Krishna':    'श्रावण कृष्ण',
+  'Bhadrapada Shukla':   'भाद्रपद शुक्ल',
+  'Bhadrapada Krishna':  'भाद्रपद कृष्ण',
+  'Ashwina Shukla':      'आश्विन शुक्ल',
+  'Ashwina Krishna':     'आश्विन कृष्ण',
+  'Kartika Shukla':      'कार्तिक शुक्ल',
+  'Kartika Krishna':     'कार्तिक कृष्ण',
+  'Margashirsha Shukla': 'मार्गशीर्ष शुक्ल',
+  'Margashirsha Krishna':'मार्गशीर्ष कृष्ण',
+  'Paush Shukla':        'पौष शुक्ल',
+  'Paush Krishna':       'पौष कृष्ण',
+  'Magha Shukla':        'माघ शुक्ल',
+  'Magha Krishna':       'माघ कृष्ण',
+  'Phalguna Shukla':     'फाल्गुन शुक्ल',
+  'Phalguna Krishna':    'फाल्गुन कृष्ण',
+  'Adhika Jyeshtha Shukla':  'अधिक ज्येष्ठ शुक्ल',
+  'Adhika Jyeshtha Krishna': 'अधिक ज्येष्ठ कृष्ण',
+  // Category labels
+  'Overview':    'अवलोकन',
+  'Diet':        'आहार',
+  'Exercise':    'व्यायाम',
+  'Sidequest':   'पार्श्वकार्य',
+  'Learning':    'अध्ययन',
+  'Budget':      'बजट',
+  'Hometask':    'गृहकार्य',
+  'Sadhana':     'साधना',
+  'History':     'इतिहास',
+  'Export':      'निर्यात',
+  // UI labels
+  'View':              'देखें',
+  'Edit Targets':      'लक्ष्य संपादित करें',
+  'Fill Progress':     'प्रगति भरें',
+  'Save Targets':      'लक्ष्य सहेजें',
+  'Save Progress':     'प्रगति सहेजें',
+  'Save':              'सहेजें',
+  'Days Left':         'शेष दिन',
+  'Progress':          'प्रगति',
+  'Budget Spent':      'व्यय',
+  'Next Milestone':    'अगला पड़ाव',
+};
+
+function devaLabel(text) {
+  return DEVA_MAP[text] || text;
+}
+
+function toggleDeva() {
+  window.devaMode = !window.devaMode;
+  const btn = document.getElementById('deva-toggle');
+  if (btn) {
+    btn.textContent = window.devaMode ? 'A' : 'अ';
+    btn.style.color = window.devaMode ? 'var(--turmeric)' : 'var(--text-muted)';
+    btn.style.borderColor = window.devaMode ? 'var(--turmeric)' : 'var(--border)';
+  }
+  // Re-render all nav tabs
+  document.querySelectorAll('.nav-tab').forEach(tab => {
+    const key = tab.dataset.tab;
+    if (!key) return;
+    const icon = tab.querySelector('.icon');
+    const iconHTML = icon ? icon.outerHTML : '';
+    const label = CATEGORIES[key] ? (window.devaMode ? devaLabel(CATEGORIES[key].label) : CATEGORIES[key].label) : key;
+    tab.innerHTML = iconHTML + ' ' + label;
+    if (icon) tab.insertBefore(Object.assign(document.createElement('span'), {className:'icon', textContent: icon.textContent}), tab.firstChild);
+  });
+  // Re-render header and overview
+  renderHeader();
+  renderOverview();
 }
 
 // ═══════════════════════════════════════════════════
